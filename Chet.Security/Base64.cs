@@ -1,4 +1,7 @@
-﻿namespace Chet.Security
+﻿using System;
+using System.IO;
+
+namespace Chet.Security
 {
     /// <summary>
     /// Base64编码、解码类

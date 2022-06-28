@@ -1,4 +1,6 @@
-﻿namespace Chet.Security
+﻿using System;
+
+namespace Chet.Security
 {
     /// <summary>
     /// 默认加密服务
