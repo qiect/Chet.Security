@@ -81,21 +81,9 @@ namespace Chet.Security
             string encryptedData = Convert.ToBase64String(rsa.Encrypt(Encoding.UTF8.GetBytes(strText), false));
             return encryptedData;
         }
+
         /// <summary>
-        /// 使用私钥对输入内容进行加密
-        /// </summary>
-        /// <param name="input">输入文本</param>
-        /// <param name="publicKey">公钥</param>
-        /// <returns></returns>
-        public static string EncryptTextByPrivateKey(string strText, string privateKey)
-        {
-            if (string.IsNullOrEmpty(strText)) { return ""; }
-            var rsa = CreateRsaProviderFromPublicKey(privateKey);
-            string encryptedData = Convert.ToBase64String(rsa.Encrypt(Encoding.UTF8.GetBytes(strText), false));
-            return encryptedData;
-        }
-        /// <summary>
-        /// 通过公钥加密（长文本）
+        /// 使用公钥对输入内容进行加密（长文本）
         /// </summary>
         /// <param name="strText"></param>
         /// <param name="publicKey"></param>
@@ -112,29 +100,7 @@ namespace Chet.Security
             {
                 plainTextBArray = strText.Substring(i * splitLength, strText.Length - (i * splitLength) > splitLength ? splitLength : strText.Length - (i * splitLength));
                 cypherTextBArray = Convert.ToBase64String(rsa.Encrypt(Encoding.UTF8.GetBytes(plainTextBArray), false));
-                Result += cypherTextBArray + "ThisIsSplit";
-            }
-            return Result;
-        }
-        /// <summary>
-        /// 通过私钥加密（长文本）
-        /// </summary>
-        /// <param name="strText"></param>
-        /// <param name="privateKey"></param>
-        /// <returns></returns>
-        public static string EncryptLongTextByPrivateKey(string strText, string privateKey)
-        {
-            string plainTextBArray;
-            string cypherTextBArray;
-            string Result = String.Empty;
-            var rsa = CreateRsaProviderFromPrivateKey(privateKey);
-            int t = (int)Math.Ceiling((double)strText.Length / splitLength);
-            //分割明文
-            for (int i = 0; i <= t - 1; i++)
-            {
-                plainTextBArray = strText.Substring(i * splitLength, strText.Length - (i * splitLength) > splitLength ? splitLength : strText.Length - (i * splitLength));
-                cypherTextBArray = Convert.ToBase64String(rsa.Encrypt(Encoding.UTF8.GetBytes(plainTextBArray), false));
-                Result += cypherTextBArray + "ThisIsSplit";
+                Result += cypherTextBArray + delimiter;
             }
             return Result;
         }
@@ -167,20 +133,6 @@ namespace Chet.Security
             string plainText = Encoding.UTF8.GetString(rsa.Decrypt(Convert.FromBase64String(decryptString), false));
             return plainText;
         }
-        /// <summary>
-        /// 使用公钥对密文进行解密
-        /// </summary>
-        /// <param name="input"></param>
-        /// <param name="privateKey"></param>
-        /// <returns></returns>
-
-        public static string DecryptByPublicKey(string decryptString, string publicKey)
-        {
-            var rsa = CreateRsaProviderFromPrivateKey(publicKey);
-            string plainText = Encoding.UTF8.GetString(rsa.Decrypt(Convert.FromBase64String(decryptString), false));
-            return plainText;
-        }
-
 
         /// <summary>
         /// 使用私钥对密文进行解密（长文本）
@@ -193,37 +145,13 @@ namespace Chet.Security
             string result = String.Empty;
             var rsa = CreateRsaProviderFromPrivateKey(privateKey);
             string[] split = new string[1];
-            split[0] = "ThisIsSplit";
+            split[0] = delimiter;
             //分割密文
             string[] strs = decryptString.Split(split, StringSplitOptions.RemoveEmptyEntries);
             for (int i = 0; i < strs.Length; i++)
             {
                 //解密
                 result += Encoding.UTF8.GetString(rsa.Decrypt(Convert.FromBase64String(strs[i]), false));
-            }
-            return result;
-        }
-
-        /// <summary>
-        /// 使用公钥对密文进行解密（长文本）
-        /// </summary>
-        /// <param name="publicKey">公钥</param>
-        /// <param name="decryptString">密文</param>
-        /// <returns>明文</returns>
-        public static string DecryptLongTextByPublicKey(string decryptString, string publicKey)
-        {
-            string result = String.Empty;
-            var rsa = CreateRsaProviderFromPublicKey(publicKey);
-            string[] split = new string[1];
-            split[0] = "ThisIsSplit";
-            //分割密文
-            string[] strs = decryptString.Split(split, StringSplitOptions.RemoveEmptyEntries);
-            for (int i = 0; i < strs.Length; i++)
-            {
-                //解密
-                var baseStr = Convert.FromBase64String(strs[i]);
-                var sf = rsa.Decrypt(baseStr, false);
-                result += Encoding.UTF8.GetString(sf);
             }
             return result;
         }
