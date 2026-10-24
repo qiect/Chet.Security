@@ -1,0 +1,175 @@
+---
+title: 快速开始
+description: Chet.Security 快速开始指南
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+## 环境要求
+
+- .NET 8.0 或更高版本（推荐）
+- .NET Standard 2.1（完整功能，含 polyfill 兼容层）
+
+## 安装
+
+<Tabs>
+  <TabItem label=".NET CLI">
+    ```bash
+    dotnet add package Chet.Security
+    ```
+  </TabItem>
+  <TabItem label="NuGet 包管理器">
+    ```powershell
+    Install-Package Chet.Security
+    ```
+  </TabItem>
+  <TabItem label="PackageReference">
+    ```xml
+    <PackageReference Include="Chet.Security" Version="1.1.0" />
+    ```
+  </TabItem>
+</Tabs>
+
+## 引入命名空间
+
+```csharp
+// 所有帮助类都统一在 Chet.Security 命名空间下
+using Chet.Security;
+```
+
+## 使用哈希算法
+
+```csharp
+using Chet.Security;
+
+// MD5（非安全场景）
+string md5 = MD5Helper.ComputeHash("hello");
+
+// SHA-256
+string sha256 = SHAHelper.ComputeSHA256("hello");
+
+// SHA3-512
+string sha3 = SHAHelper.ComputeSHA3_512("hello");
+
+// 国密 SM3
+string sm3 = SM3Helper.ComputeHash("hello");
+
+// HMAC-SHA256
+string hmac = HMACHelper.ComputeHmacSHA256("data", "secret");
+
+// Blake2b
+string blake2 = Blake2Helper.ComputeBlake2b("hello");
+```
+
+## 使用对称加密
+
+```csharp
+using Chet.Security;
+
+// AES-CBC（密钥与 IV 自动规范化为 256/128 位）
+string cipher = AESHelper.Encrypt("plaintext", "password", "my-iv");
+string plain = AESHelper.Decrypt(cipher, "password", "my-iv");
+
+// AES-GCM（认证加密，密钥 256 位、nonce 96 位）
+string gcm = AESHelper.EncryptGCM("data", "key", "nonce");
+string decoded = AESHelper.DecryptGCM(gcm, "key", "nonce");
+
+// 国密 SM4（密钥与 IV 自动规范化为 128 位）
+string sm4Cipher = SM4Helper.Encrypt("plaintext", "password", "my-iv");
+string sm4Plain = SM4Helper.Decrypt(sm4Cipher, "password", "my-iv");
+
+// ChaCha20-Poly1305（AEAD）
+string chacha = ChaCha20Poly1305Helper.Encrypt("data", "key", "nonce");
+string chachaPlain = ChaCha20Poly1305Helper.Decrypt(chacha, "key", "nonce");
+```
+
+## 使用非对称加密
+
+```csharp
+using Chet.Security;
+
+// RSA（OAEP-SHA256 加密、PSS-SHA256 签名，PEM/PKCS#8 密钥）
+var (rsaPublic, rsaPrivate) = RSAHelper.GenerateKeyPair(2048);
+string cipher = RSAHelper.Encrypt("hello", rsaPublic);
+string plain = RSAHelper.Decrypt(cipher, rsaPrivate);
+string sig = RSAHelper.SignData("payload", rsaPrivate);
+bool ok = RSAHelper.VerifyData("payload", sig, rsaPublic);
+
+// 国密 SM2（C1C3C2 加密，Base64 密钥）
+var (sm2Pub, sm2Priv) = SM2Helper.GenerateKeyPair();
+string c = SM2Helper.Encrypt("hello", sm2Pub);
+string p = SM2Helper.Decrypt(c, sm2Priv);
+
+// ECC（NIST P-256，ECDSA-SHA256 签名 + ECDH 密钥协商）
+var (eccPublic, eccPrivate) = ECCHelper.GenerateKeyPair();
+string sig = ECCHelper.Sign("data", eccPrivate);
+bool ok = ECCHelper.Verify("data", sig, eccPublic);
+
+// 双方 ECDH 协商共享密钥
+var (alicePub, alicePriv) = ECCHelper.GenerateKeyPair();
+var (bobPub, bobPriv) = ECCHelper.GenerateKeyPair();
+byte[] shared = ECCHelper.DeriveSharedSecret(alicePriv, bobPub); // 32 字节对称密钥
+```
+
+## 使用密钥派生
+
+```csharp
+using Chet.Security;
+
+// PBKDF2 派生密钥（默认 10000 次迭代）
+byte[] salt = PBKDF2Helper.GenerateSalt(16);
+byte[] key = PBKDF2Helper.DeriveBytes("password", salt);
+string hex = PBKDF2Helper.DeriveHex("password", "salt");
+
+// Argon2id（内存困难型，抵御 GPU/ASIC）
+byte[] argonKey = Argon2Helper.DeriveBytes("password", "salt");
+
+// SCrypt（内存困难型 KDF）
+byte[] scryptKey = SCryptHelper.DeriveBytes("password", "salt");
+
+// HKDF（从 IKM 派生多个密钥）
+byte[] derived = HKDFHelper.DeriveKey("input-key-material", "salt", "context");
+
+// BCryptHelper 形态密码哈希（底层 PBKDF2，输出 pbkdf2$iter$salt$hash）
+string hashed = BCryptHelper.HashPassword("password");
+bool valid = BCryptHelper.VerifyPassword("password", hashed);
+```
+
+## 使用统一门面
+
+```csharp
+using Chet.Security;
+
+// 直接调用静态辅助方法（密钥规范化、随机数生成、格式转换）
+string token = SecurityHelper.GenerateRandomBase64(32);
+byte[] key = SecurityHelper.NormalizeKey("my-password", KeyNormalizeMode.Hash, 256);
+
+// 通过 ISecurityService 依赖注入（按 CryptoAlgorithm 分发到各 *Helper）
+public class MyService
+{
+    private readonly ISecurityService _security;
+    public MyService(ISecurityService security) => _security = security;
+
+    // 哈希算法返回小写十六进制；可逆加密返回 Base64
+    public string DoWork(string payload) => _security.Encode(payload);
+}
+
+// 注册时构造 SecurityService（算法 + 密钥 + 辅助密钥 + IV）
+// services.AddSingleton<ISecurityService>(
+//     new SecurityService(CryptoAlgorithm.AES, key, iv: "my-iv"));
+```
+
+## 版本历史
+
+### v1.1.0（当前版本）
+
+- 全量重构：多目标 `netstandard2.1` + `net8.0`，内置 polyfill 兼容层统一 API 行为
+- 重写所有加密类，统一 `XxxHelper` 静态类命名与编码风格
+- 新增国密 SM2/SM3/SM4 完整实现（基于 BouncyCastle.Cryptography 2.5.1）
+- 新增 SHA-3（256/384/512）、Blake2（Blake2b/Blake2s）、ChaCha20-Poly1305、Argon2id、Adler32、Base32、Base58、CRC32/64
+- 引入 `ISecurityService` + `SecurityService` 门面，便于依赖注入与单元测试
+- 全部 303 项单元测试通过
+
+### v1.0.0
+
+- 基础 MD5/SHA/AES/DES/RSA 实现

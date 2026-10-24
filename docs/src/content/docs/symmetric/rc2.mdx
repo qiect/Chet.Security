@@ -1,0 +1,139 @@
+---
+title: "RC2Helper"
+description: "RC2 对称加密工具类，使用 CBC 模式与 PKCS7 填充（已不安全，仅用于遗留数据）。"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+# RC2Helper 帮助类
+
+## 概述
+
+[RC2Helper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Symmetric/RC2.cs) 是一个静态帮助类，封装了 RC2 对称加密的常用操作，使用 CBC 模式与 PKCS7 填充。
+
+> ⚠️ **安全警告：** RC2 已不安全，仅作遗留数据兼容使用，不应在新系统中采用。请优先使用 [AESHelper](./aes)。
+
+## 主要特性
+
+- 🔓 **遗留兼容** — 用于解密历史数据，不建议用于新系统
+- 📦 **CBC + PKCS7** — 固定使用 CBC 模式与 PKCS7 填充
+- 🔑 **密钥自动派生** — 字符串重载从 `key` 派生 128 位密钥与 64 位 IV
+- 📋 **双双重载** — 提供 `string` 与 `byte[]` 两套重载
+- 🔄 **跨平台一致** — 多目标 `netstandard2.1` + `net8.0`
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class RC2Helper
+```
+
+---
+
+## 字符串加解密
+
+### Encrypt(string, string)
+
+使用 CBC + PKCS7 加密 UTF-8 明文，返回 Base64 密文。密钥规范化为 128 位，IV 由 `key` 规范化为 64 位。
+
+```csharp
+public static string Encrypt(string plain, string key)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `plain` | `string` | 明文字符串 |
+| `key` | `string` | 密钥（任意长度，将规范化为 128 位；同时用作 IV 来源） |
+
+**返回值：** Base64 编码的密文。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+// 仅用于遗留数据兼容场景
+string cipher = RC2Helper.Encrypt("legacy data", "old-password");
+```
+
+### Decrypt(string, string)
+
+解密 Base64 密文为 UTF-8 明文。密钥规范化为 128 位，IV 由 `key` 规范化为 64 位。
+
+```csharp
+public static string Decrypt(string cipherBase64, string key)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `cipherBase64` | `string` | Base64 编码的密文 |
+| `key` | `string` | 密钥（任意长度，将规范化为 128 位；同时用作 IV 来源） |
+
+**返回值：** UTF-8 明文字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string cipher = RC2Helper.Encrypt("legacy data", "old-password");
+string plain = RC2Helper.Decrypt(cipher, "old-password");
+```
+
+---
+
+## 字节数组加解密
+
+### Encrypt(byte[], byte[], byte[])
+
+使用 CBC + PKCS7 加密字节数组。要求 key 为 16 字节，iv 为 8 字节。
+
+```csharp
+public static byte[] Encrypt(byte[] plain, byte[] key, byte[] iv)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `plain` | `byte[]` | 明文字节数组 |
+| `key` | `byte[]` | 16 字节密钥 |
+| `iv` | `byte[]` | 8 字节 IV |
+
+**返回值：** 密文字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] key = new byte[16]; // 实际场景应使用安全随机数
+byte[] iv = new byte[8];
+byte[] cipher = RC2Helper.Encrypt(System.Text.Encoding.UTF8.GetBytes("legacy"), key, iv);
+```
+
+### Decrypt(byte[], byte[], byte[])
+
+使用 CBC + PKCS7 解密字节数组。要求 key 为 16 字节，iv 为 8 字节。
+
+```csharp
+public static byte[] Decrypt(byte[] cipher, byte[] key, byte[] iv)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `cipher` | `byte[]` | 密文字节数组 |
+| `key` | `byte[]` | 16 字节密钥 |
+| `iv` | `byte[]` | 8 字节 IV |
+
+**返回值：** 明文字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] key = new byte[16];
+byte[] iv = new byte[8];
+byte[] cipher = RC2Helper.Encrypt(System.Text.Encoding.UTF8.GetBytes("legacy"), key, iv);
+byte[] plain = RC2Helper.Decrypt(cipher, key, iv);
+```

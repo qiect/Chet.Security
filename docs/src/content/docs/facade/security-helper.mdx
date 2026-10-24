@@ -1,0 +1,263 @@
+---
+title: "SecurityHelper"
+description: "加解密共享辅助方法静态帮助类，提供密钥规范化、随机数生成与字节字符串转换等通用能力。"
+---
+
+import { Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# SecurityHelper 帮助类
+
+## 概述
+
+[SecurityHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/SecurityHelper.cs) 是一个静态帮助类，封装了加解密场景下的共享辅助方法：将用户提供的任意长度密钥规范化为算法要求的固定长度字节数组、生成密码学安全的随机字节/十六进制/Base64 字符串，以及按指定格式在字节数组与字符串之间互转。该类是 `Chet.Security` 各 `*Helper` 与 `SecurityService` 的公共底座，亦可在用户代码中直接调用。
+
+## 主要特性
+
+- 🔑 **密钥规范化** — 通过 `KeyNormalizeMode` 提供 Hash / PadRightZero / PadLeftZero 三种策略，将任意长度密钥转为 128/192/256 位等固定长度
+- 🎲 **密码学安全随机数** — 基于 `RandomNumberGenerator` 生成随机字节、十六进制与 Base64 字符串
+- 🔁 **格式双向转换** — `FormatOutput` / `ParseInput` 支持 Base64、Hex 与 UTF-8 三种格式的双向流转
+- 🧩 **底座复用** — 各 `*Helper` 字符串重载内部使用 `NormalizeKey` 完成密钥规范化
+- 📦 **静态类** — 全部为静态方法，无需实例化即可调用
+- 🌐 **跨平台一致** — 多目标 `netstandard2.1` + `net8.0`，polyfill 统一行为
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class SecurityHelper
+```
+
+---
+
+## 枚举
+
+`SecurityHelper` 所在命名空间 `Chet.Security` 暴露三个枚举，用于规范密钥规范化模式、输出格式与统一算法标识。
+
+### KeyNormalizeMode
+
+密钥补全模式，用于将用户提供的任意长度密钥规范化为算法要求的长度。
+
+```csharp
+public enum KeyNormalizeMode
+{
+    Hash,           // 对密钥做哈希后截取/补齐到目标长度（推荐，可处理任意长度输入）
+    PadRightZero,   // 右侧补零到目标长度
+    PadLeftZero,    // 左侧补零到目标长度
+}
+```
+
+### OutputFormat
+
+输出格式：明文/密文/哈希值的字符串表示形式。
+
+```csharp
+public enum OutputFormat
+{
+    Base64, // Base64 字符串
+    Hex,    // 小写十六进制字符串
+    Raw,    // 原始字节数组
+}
+```
+
+### CryptoAlgorithm
+
+统一加密算法标识，供 `ISecurityService` 门面分发使用（`int` 基类型）。
+
+```csharp
+public enum CryptoAlgorithm : int
+{
+    MD5 = 1,        // MD5 摘要（不可逆）
+    SHA256 = 2,     // SHA-256 摘要（不可逆）
+    SHA512 = 3,     // SHA-512 摘要（不可逆）
+    SM3 = 4,        // SM3 国密摘要（不可逆）
+    AES = 5,        // AES 对称加密
+    DES = 6,        // DES 对称加密（已不安全，仅做兼容）
+    TripleDES = 7,  // TripleDES（3DES）对称加密
+    SM4 = 8,        // SM4 国密对称加密
+    RSA = 9,        // RSA 非对称加密
+    SM2 = 10,       // SM2 国密非对称加密
+    Base64 = 11,    // Base64 编码（可逆，非加密）
+}
+```
+
+---
+
+## 密钥规范化
+
+### NormalizeKey
+
+将用户提供的任意长度密钥规范化为算法要求的固定长度字节数组。
+
+```csharp
+public static byte[] NormalizeKey(string? key, KeyNormalizeMode mode = KeyNormalizeMode.Hash, int bitLength = 128)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `key` | `string?` | 原始密钥（任意长度），可为 `null` 或空字符串 |
+| `mode` | `KeyNormalizeMode` | 规范化模式，默认 `KeyNormalizeMode.Hash` |
+| `bitLength` | `int` | 目标密钥长度（位），通常为 128/192/256，必须为 8 的正整数倍 |
+
+**返回值：** 规范化后的密钥字节数组。当 `key` 为 `null` 或空时返回全零字节数组。
+
+**行为说明：**
+
+- `KeyNormalizeMode.Hash`：用 SHA-256 对密钥做哈希后取前 N 字节；若哈希结果不足 N 字节，则继续对累积结果做一轮哈希并拼接，直至满足长度。
+- `KeyNormalizeMode.PadRightZero`：直接取 UTF-8 字节，右侧补零到目标长度。
+- `KeyNormalizeMode.PadLeftZero`：直接取 UTF-8 字节，左侧补零到目标长度。
+
+**异常：** 当 `bitLength` 小于等于 0 或不是 8 的整数倍时抛出 `ArgumentException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+// 默认 Hash 模式，128 位密钥
+byte[] key128 = SecurityHelper.NormalizeKey("my-password");
+
+// 256 位密钥
+byte[] key256 = SecurityHelper.NormalizeKey("my-password", KeyNormalizeMode.Hash, 256);
+
+// 左侧补零到 128 位
+byte[] padded = SecurityHelper.NormalizeKey("short", KeyNormalizeMode.PadLeftZero, 128);
+```
+
+---
+
+## 随机数生成
+
+### GenerateRandomBytes
+
+生成密码学安全的随机字节数组。
+
+```csharp
+public static byte[] GenerateRandomBytes(int length)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `length` | `int` | 字节数 |
+
+**返回值：** 长度为 `length` 的密码学安全随机字节数组。
+
+**异常：** 当 `length` 小于 0 时抛出 `ArgumentOutOfRangeException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] nonce = SecurityHelper.GenerateRandomBytes(12);  // 12 字节随机数
+byte[] key   = SecurityHelper.GenerateRandomBytes(32);  // 256 位随机密钥
+```
+
+### GenerateRandomHex
+
+生成密码学安全的随机十六进制字符串。
+
+```csharp
+public static string GenerateRandomHex(int length)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `length` | `int` | 字节数（输出字符串长度为 `length * 2`） |
+
+**返回值：** 小写十六进制字符串，长度为 `length * 2`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hex = SecurityHelper.GenerateRandomHex(16);  // 16 字节 → 32 位十六进制字符串
+```
+
+### GenerateRandomBase64
+
+生成密码学安全的随机 Base64 字符串。
+
+```csharp
+public static string GenerateRandomBase64(int length)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `length` | `int` | 字节数 |
+
+**返回值：** Base64 编码字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string token = SecurityHelper.GenerateRandomBase64(32);  // 32 字节随机数的 Base64 表示
+```
+
+---
+
+## 格式转换
+
+### FormatOutput
+
+按指定输出格式将字节数组转为字符串。
+
+```csharp
+public static string FormatOutput(byte[] data, OutputFormat format)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `data` | `byte[]` | 输入字节数组 |
+| `format` | `OutputFormat` | 输出格式，支持 `Base64` 与 `Hex` |
+
+**返回值：**
+
+- `OutputFormat.Base64`：返回 Base64 字符串；
+- `OutputFormat.Hex`：返回小写十六进制字符串；
+- `OutputFormat.Raw`：抛出 `NotSupportedException`（原始字节无法表示为字符串）。
+
+**异常：** `format` 为 `OutputFormat.Raw` 时抛出 `NotSupportedException`；为未知值时抛出 `ArgumentOutOfRangeException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = System.Text.Encoding.UTF8.GetBytes("hello");
+
+string b64 = SecurityHelper.FormatOutput(data, OutputFormat.Base64);
+string hex = SecurityHelper.FormatOutput(data, OutputFormat.Hex);
+```
+
+### ParseInput
+
+按指定输入格式将字符串转为字节数组。`Base64` 与 `Hex` 自动识别失败时回退到 UTF-8。
+
+```csharp
+public static byte[] ParseInput(string input, OutputFormat format)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `input` | `string` | 输入字符串 |
+| `format` | `OutputFormat` | 输入格式，支持 `Base64`、`Hex` 与 `Raw` |
+
+**返回值：**
+
+- `OutputFormat.Base64`：通过 `Convert.FromBase64String` 解码；
+- `OutputFormat.Hex`：通过 `CryptoPolyfill.FromHex` 解码；
+- 其他（含 `OutputFormat.Raw`）：按 UTF-8 编码取字节。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] fromB64 = SecurityHelper.ParseInput("aGVsbG8=", OutputFormat.Base64);
+byte[] fromHex = SecurityHelper.ParseInput("68656c6c6f", OutputFormat.Hex);
+byte[] fromUtf8 = SecurityHelper.ParseInput("hello", OutputFormat.Raw);
+```

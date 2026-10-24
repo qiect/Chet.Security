@@ -1,0 +1,144 @@
+---
+title: "Base32Helper"
+description: "Base32 编码/解码静态帮助类，遵循 RFC 4648 标准，使用 A-Z2-7 码表。"
+---
+
+# Base32Helper 帮助类
+
+## 概述
+
+[Base32Helper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Encoding/Base32.cs) 是一个静态帮助类，遵循 RFC 4648 标准实现 Base32 编码/解码，使用 `A-Z2-7` 码表，常用于对大小写不敏感的场景以及 TOTP（基于时间的一次性密码）密钥编码。
+
+## 主要特性
+
+- 📜 **RFC 4648 标准** — 严格遵循 RFC 4648 Base32 规范
+- 🔤 **A-Z2-7 码表** — 使用 26 个大写字母与数字 2-7，共 32 个字符
+- 🔡 **大小写不敏感** — 解码时统一转为大写，支持小写输入
+- 🧹 **容错空白** — 解码时自动忽略空白字符
+- 🔄 **双向转换** — 支持字节数组与 Base32 字符串互转
+- 📝 **字符串直转** — 提供 UTF-8 字符串与 Base32 的直接互转方法
+- 📦 **静态类** — 全部为静态方法，无需实例化即可调用
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class Base32Helper
+```
+
+---
+
+## 常量
+
+### StandardAlphabet
+
+标准 Base32 码表（RFC 4648）。
+
+```csharp
+public const string StandardAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+```
+
+---
+
+## 编码方法
+
+### Encode
+
+将字节数组编码为 Base32 字符串（带 `=` 填充）。
+
+```csharp
+public static string Encode(byte[] bytes)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| bytes | byte[] | 输入字节数组 |
+
+**返回值：** Base32 字符串，使用 `=` 填充至 8 的倍数长度；空数组返回 `string.Empty`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] bytes = System.Text.Encoding.UTF8.GetBytes("hello");
+string b32 = Base32Helper.Encode(bytes);
+// b32 = "NBSWY3DP"
+```
+
+### EncodeString
+
+将字符串按 UTF-8 编码后转为 Base32。
+
+```csharp
+public static string EncodeString(string text)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| text | string | 输入字符串 |
+
+**返回值：** Base32 字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string b32 = Base32Helper.EncodeString("hello");
+// b32 = "NBSWY3DP"
+```
+
+---
+
+## 解码方法
+
+### Decode
+
+将 Base32 字符串解码为字节数组（大小写不敏感，忽略空白）。
+
+```csharp
+public static byte[] Decode(string base32)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| base32 | string | Base32 字符串，大小写不敏感，自动忽略空白 |
+
+**返回值：** 解码后的字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] bytes = Base32Helper.Decode("NBSWY3DP");
+// bytes = { 0x68, 0x65, 0x6C, 0x6C, 0x6F }，对应 "hello"
+
+// 小写与空白同样支持
+byte[] ok = Base32Helper.Decode("nbsw y3dp");
+```
+
+### DecodeToString
+
+将 Base32 字符串解码为 UTF-8 字符串。
+
+```csharp
+public static string DecodeToString(string base32)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| base32 | string | Base32 字符串，大小写不敏感，自动忽略空白 |
+
+**返回值：** 解码后的 UTF-8 字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+// 典型场景：解码 TOTP 共享密钥
+string secret = Base32Helper.DecodeToString("JBSWY3DPEHPK3PXP");
+```

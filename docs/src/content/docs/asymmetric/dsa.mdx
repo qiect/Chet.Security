@@ -1,0 +1,117 @@
+---
+title: "DSAHelper"
+description: "DSA 数字签名工具类，提供 DSA 密钥对生成、SHA-256withDSA 签名与验签（遗留兼容，新项目建议改用 ECDSA 或 RSA-PSS）。"
+---
+
+# DSAHelper 帮助类
+
+## 概述
+
+[DSAHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Asymmetric/DSA.cs) 是一个静态帮助类，封装了 DSA 数字签名算法的密钥生成与签名验签操作；密钥统一采用 PEM（公钥 SubjectPublicKeyInfo / 私钥 PKCS#8 PrivateKeyInfo）格式，签名算法固定为 `SHA-256withDSA`。该类为遗留算法兼容用途而保留，新项目建议改用 `ECCHelper` 或 `RSAHelper` 的 PSS 签名。
+
+## 主要特性
+
+- ⚠️ **遗留兼容**：保留 DSA 算法用于对接老系统；新项目建议改用 ECDSA 或 RSA-PSS。
+- 🔑 **密钥生成**：通过 BouncyCastle `DsaParametersGenerator` + `DsaKeyPairGenerator` 生成密钥对，支持 1024 / 2048 / 3072 位。
+- ✍️ **SHA-256withDSA 签名**：签名与验签固定使用 `SHA-256withDSA` 算法，UTF-8 编码原文。
+- 📦 **标准 PEM 格式**：公钥 `PUBLIC KEY`（SubjectPublicKeyInfo）、私钥 `PRIVATE KEY`（PKCS#8），64 字符分行。
+- 🌐 **BouncyCastle 内核**：解析、签名、验签全程使用 BouncyCastle `PemReader` / `SignerUtilities`。
+
+## 类定义
+
+```csharp
+using Chet.Security;
+
+/// <summary>DSA 数字签名工具类（遗留算法，仅做兼容使用；新项目建议改用 ECDSA 或 RSA-PSS）。</summary>
+public static class DSAHelper
+```
+
+---
+
+## 密钥生成
+
+### GenerateKeyPair
+
+生成 DSA 密钥对并返回 PEM 字符串（公钥为 SubjectPublicKeyInfo，私钥为 PKCS#8 PrivateKeyInfo）。
+
+```csharp
+public static (string PublicKeyPem, string PrivateKeyPem) GenerateKeyPair(int keySize = 1024)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| keySize | int | 密钥位数，默认 1024（仅支持 1024/2048/3072；SHA-256withDSA 在 2048/3072 上为原生 N=256）。 |
+
+**返回值：** 公钥与私钥的 PEM 字符串元组 `(PublicKeyPem, PrivateKeyPem)`；`keySize` 非 1024/2048/3072 时抛出 `ArgumentOutOfRangeException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, privatePem) = DSAHelper.GenerateKeyPair(2048);
+
+Console.WriteLine(publicPem);
+// -----BEGIN PUBLIC KEY-----
+// MIIBHwKCAQEA...
+// -----END PUBLIC KEY-----
+
+Console.WriteLine(privatePem);
+// -----BEGIN PRIVATE KEY-----
+// MIIBSwIBADCCASwCAQEA...
+// -----END PRIVATE KEY-----
+```
+
+## 签名与验签
+
+### Sign
+
+使用私钥 PEM 对数据签名，返回 Base64 签名（SHA-256withDSA）。
+
+```csharp
+public static string Sign(string data, string privateKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| data | string | 待签名数据（UTF-8）。 |
+| privateKeyPem | string | PKCS#8 私钥 PEM。 |
+
+**返回值：** Base64 签名。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (_, privatePem) = DSAHelper.GenerateKeyPair(2048);
+string sig = DSAHelper.Sign("legacy payload", privatePem);
+Console.WriteLine(sig);
+```
+
+### Verify
+
+使用公钥 PEM 验证签名。
+
+```csharp
+public static bool Verify(string data, string signatureBase64, string publicKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| data | string | 原始数据。 |
+| signatureBase64 | string | Base64 签名。 |
+| publicKeyPem | string | 公钥 PEM。 |
+
+**返回值：** 签名是否通过验证。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, privatePem) = DSAHelper.GenerateKeyPair(2048);
+string sig = DSAHelper.Sign("legacy payload", privatePem);
+bool ok = DSAHelper.Verify("legacy payload", sig, publicPem);
+Console.WriteLine(ok); // True
+```

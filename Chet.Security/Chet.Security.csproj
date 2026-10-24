@@ -1,17 +1,45 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <TargetFrameworks>netstandard2.1;net8.0</TargetFrameworks>
+    <ImplicitUsings Condition="'$(TargetFramework)' == 'net8.0'">enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Description>安全工具类，加密解密（MD5、AES、Des、TripDes、Rsa、Base64）</Description>
-    <AssemblyVersion>1.0.1</AssemblyVersion>
-    <FileVersion>1.0.1</FileVersion>
-    <Version>1.0.1</Version>
+    <LangVersion>latest</LangVersion>
+    <Title>Chet.Security — A comprehensive C# security &amp; cryptography library | C# 安全与加密工具类库</Title>
+    <Authors>Chet</Authors>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/qiect/Chet.Security</RepositoryUrl>
+    <PackageProjectUrl>https://qiect.github.io/Chet.Security</PackageProjectUrl>
+    <PackageIcon>logo.png</PackageIcon>
+    <Description>A comprehensive C# security &amp; cryptography library providing hashing (MD5/SHA/SM3/HMAC/Blake2), symmetric encryption (AES/DES/3DES/RC2/ChaCha20/SM4), asymmetric encryption (RSA/DSA/ECC/SM2), encoding (Base64/Base32/Base58/Hex), key derivation (PBKDF2/BCrypt/SCrypt/HKDF/Argon2), secure random and checksum utilities. Targets .NET Standard 2.1 and .NET 8.0+. C# 安全与加密工具类库，覆盖国密与国际化主流算法。</Description>
+    <Version>1.1.0</Version>
+    <Product />
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <DefineConstants>NETSTANDARD2_1</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <DefineConstants>NET8_0</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\logo.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.5.1" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.5.1" />
   </ItemGroup>
 
 </Project>

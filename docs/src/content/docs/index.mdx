@@ -1,0 +1,81 @@
+---
+title: Chet.Security
+description: 全面的 C# 安全与加密工具类库，覆盖国密与国际化主流算法
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+全面的 C# 安全与加密工具类库，提供哈希、对称加密、非对称加密、密钥派生、编码、随机数与校验和等完整能力。
+
+## 安装
+
+<Tabs>
+  <TabItem label=".NET CLI">
+    ```bash
+    dotnet add package Chet.Security
+    ```
+  </TabItem>
+  <TabItem label="NuGet">
+    ```powershell
+    Install-Package Chet.Security
+    ```
+  </TabItem>
+  <TabItem label="PackageReference">
+    ```xml
+    <PackageReference Include="Chet.Security" Version="1.1.0" />
+    ```
+  </TabItem>
+</Tabs>
+
+## 核心特性
+
+- 🔐 **算法齐全** — 涵盖 MD5/SHA-1/2/3/SM3/HMAC/Blake2 哈希，AES/DES/3DES/RC2/ChaCha20-Poly1305/SM4 对称加密，RSA/DSA/ECC/SM2 非对称加密
+- 🇨🇳 **国密支持** — SM2/SM3/SM4 完整实现，符合 GM/T 标准并基于 BouncyCastle
+- 🧂 **密钥派生** — PBKDF2/BCrypt/SCrypt/HKDF/Argon2id 全覆盖
+- 🎲 **安全随机** — 基于加密随机数生成器
+- 🧾 **编码工具** — Hex/Base64/Base32/Base58 编码
+- 📦 **校验和** — CRC32/CRC64/Adler32
+- 🌐 **多目标** — 同时支持 `netstandard2.1` 与 `net8.0`，内置 polyfill 兼容层
+- 🎯 **统一门面** — `SecurityHelper` 静态门面与 `ISecurityService` 抽象，便于依赖注入
+
+## 统计
+
+- 📦 **算法类** — 27+
+- 🔧 **方法总数** — 400+
+- 🎯 **目标框架** — `netstandard2.1` / `net8.0`
+- 📄 **开源协议** — MIT
+
+## 快速示例
+
+```csharp
+using Chet.Security;
+
+// 哈希
+string md5 = MD5Helper.ComputeHash("hello");
+string sha256 = SHAHelper.ComputeSHA256("hello");
+string sm3 = SM3Helper.ComputeHash("hello");
+
+// 对称加密（AES-CBC，密钥与 IV 自动规范化）
+string cipher = AESHelper.Encrypt("plaintext", "password", "my-iv");
+string plain  = AESHelper.Decrypt(cipher, "password", "my-iv");
+
+// AES-GCM 认证加密
+string gcm = AESHelper.EncryptGCM("data", "key", "nonce");
+string decoded = AESHelper.DecryptGCM(gcm, "key", "nonce");
+
+// 非对称加密（RSA，PEM 密钥对）
+var (publicPem, privatePem) = RSAHelper.GenerateKeyPair(2048);
+string enc = RSAHelper.Encrypt("hello", publicPem);
+string dec = RSAHelper.Decrypt(enc, privatePem);
+
+// 密码哈希（BCryptHelper 形态，底层 PBKDF2）
+string hashed = BCryptHelper.HashPassword("password");
+bool ok = BCryptHelper.VerifyPassword("password", hashed);
+
+// 随机 Token / 密钥生成
+string token = SecurityHelper.GenerateRandomBase64(32);
+
+// 统一服务门面（按 CryptoAlgorithm 分发到各 Helper）
+var service = new SecurityService(CryptoAlgorithm.SHA256);
+string h = service.Encode("hello");  // 返回小写十六进制摘要
+```

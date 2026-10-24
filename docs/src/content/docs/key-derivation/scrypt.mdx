@@ -1,0 +1,147 @@
+---
+title: "SCryptHelper"
+description: "基于 BouncyCastle 的 SCrypt 内存困难型密钥派生静态帮助类。"
+---
+
+# SCryptHelper 帮助类
+
+## 概述
+
+[SCryptHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/KeyDerivation/SCrypt.cs) 是一个静态帮助类，基于 BouncyCastle 的 `SCrypt` 实现内存困难型密钥派生算法，适用于密码哈希与需要抵御 GPU/ASIC 并行攻击的密钥派生场景。该类支持字节数组、Base64 与小写十六进制字符串输出，并提供 N、r、p 三个可调参数。
+
+## 主要特性
+
+- 🧠 **内存困难型 KDF** — 基于 SCrypt 算法，要求大量内存以抵御并行攻击
+- ⚙️ **可调参数** — N（CPU/内存开销）、r（块大小）、p（并行）三个参数可调
+- 📦 **多种输出格式** — 支持字节数组、Base64 字符串、小写十六进制字符串
+- 🧂 **外部盐值** — 由调用方提供盐值，便于与存储系统对接
+- 🔢 **N 必须为 2 的幂** — 内置校验，非 2 的幂将抛出 `ArgumentException`
+- 🔗 **BouncyCastle 实现** — 基于 `Org.BouncyCastle.Crypto.Generators.SCrypt`
+
+## 类定义
+
+```csharp
+public static class SCryptHelper
+{
+    public const int DefaultN = 1 << 14;  // 16384
+    public const int DefaultR = 8;
+    public const int DefaultP = 1;
+    public const int DefaultDerivedLength = 32;
+}
+```
+
+---
+
+## 密钥派生
+
+### DeriveBytes（字节数组输入）
+
+使用 SCrypt 从密码派生指定长度的字节数组。
+
+```csharp
+public static byte[] DeriveBytes(byte[] password, byte[] salt, int n = DefaultN, int r = DefaultR, int p = DefaultP, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| password | byte[] | 密码字节数组。 |
+| salt | byte[] | 盐值字节数组。 |
+| n | int | CPU/内存开销参数 N，必须为 2 的幂，默认 16384。 |
+| r | int | 块大小参数 r，默认 8。 |
+| p | int | 并行参数 p，默认 1。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生出的密钥字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] pwd = System.Text.Encoding.UTF8.GetBytes("password");
+byte[] salt = System.Text.Encoding.UTF8.GetBytes("salt");
+byte[] key = SCryptHelper.DeriveBytes(pwd, salt);
+```
+
+### DeriveBytes（字符串输入）
+
+使用 SCrypt 从密码派生指定长度的字节数组，密码与盐均为 UTF-8 字符串。
+
+```csharp
+public static byte[] DeriveBytes(string password, string salt, int n = DefaultN, int r = DefaultR, int p = DefaultP, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| password | string | 密码字符串（按 UTF-8 编码）。 |
+| salt | string | 盐值字符串（按 UTF-8 编码）。 |
+| n | int | CPU/内存开销参数 N，必须为 2 的幂，默认 16384。 |
+| r | int | 块大小参数 r，默认 8。 |
+| p | int | 并行参数 p，默认 1。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生出的密钥字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] key = SCryptHelper.DeriveBytes("password", "salt");
+```
+
+## 编码输出
+
+### DeriveBase64
+
+使用 SCrypt 派生并以 Base64 字符串返回。
+
+```csharp
+public static string DeriveBase64(string password, string salt, int n = DefaultN, int r = DefaultR, int p = DefaultP, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| password | string | 密码字符串（按 UTF-8 编码）。 |
+| salt | string | 盐值字符串（按 UTF-8 编码）。 |
+| n | int | CPU/内存开销参数 N，必须为 2 的幂，默认 16384。 |
+| r | int | 块大小参数 r，默认 8。 |
+| p | int | 并行参数 p，默认 1。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生密钥的 Base64 字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string base64 = SCryptHelper.DeriveBase64("password", "salt");
+```
+
+### DeriveHex
+
+使用 SCrypt 派生并以小写十六进制字符串返回。
+
+```csharp
+public static string DeriveHex(string password, string salt, int n = DefaultN, int r = DefaultR, int p = DefaultP, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| password | string | 密码字符串（按 UTF-8 编码）。 |
+| salt | string | 盐值字符串（按 UTF-8 编码）。 |
+| n | int | CPU/内存开销参数 N，必须为 2 的幂，默认 16384。 |
+| r | int | 块大小参数 r，默认 8。 |
+| p | int | 并行参数 p，默认 1。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生密钥的小写十六进制字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hex = SCryptHelper.DeriveHex("password", "salt");
+```

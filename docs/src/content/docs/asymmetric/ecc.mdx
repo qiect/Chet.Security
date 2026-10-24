@@ -1,0 +1,148 @@
+---
+title: "ECCHelper"
+description: "ECDSA 签名与 ECDH 密钥协商工具类，基于 NIST P-256 曲线，使用 BCL 实现 PEM/PKCS#8 密钥导入导出。"
+---
+
+# ECCHelper 帮助类
+
+## 概述
+
+[ECCHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Asymmetric/ECC.cs) 是一个静态帮助类，封装了基于 NIST P-256 曲线的 ECDSA 数字签名与 ECDH 密钥协商操作。密钥采用标准 PEM 格式（公钥 SubjectPublicKeyInfo / 私钥 PKCS#8 PrivateKeyInfo），签名固定使用 SHA-256，ECDH 协商得到的原始共享点再经 SHA-256 派生为 32 字节对称密钥。实现全程基于 .NET BCL `ECDsa` / `ECDiffieHellman`，避免 BouncyCastle 重新导出 EC 密钥时产生 BCL 不接受的非标准 DER。
+
+## 主要特性
+
+- 🔵 **NIST P-256 曲线**：使用 `ECCurve.NamedCurves.nistP256`，符合 FIPS 186-4 推荐曲线。
+- 🔑 **BCL 原生密钥生成**：直接调用 `ECDsa.Create` 并导出 SubjectPublicKeyInfo / PKCS#8 PrivateKeyInfo，PEM 全部 64 字符分行。
+- ✍️ **ECDSA-SHA256 签名**：`Sign` / `Verify` 通过 BCL `ECDsa` 完成，UTF-8 编码原文，输出 Base64 签名。
+- 🤝 **ECDH 密钥协商**：`DeriveSharedSecret` 使用 BCL `ECDiffieHellman.DeriveKeyMaterial` 取原始共享点，再经 SHA-256 派生 32 字节密钥，跨 `netstandard2.1` 与 `net8.0` 行为一致。
+- 📦 **PEM 直接解析**：`ToDerFromPem` 手工剥离 BEGIN/END 标记后 Base64 解码，避免 BC 重新导出 EC 密钥时的非标准 DER 问题。
+- 🌐 **统一命名空间**：所有帮助类位于 `Chet.Security` 命名空间下，跨平台目标（`netstandard2.1` / `net8.0`）行为一致。
+
+## 类定义
+
+```csharp
+using Chet.Security;
+
+/// <summary>ECDSA 数字签名与 ECDH 密钥协商工具类，基于 NIST P-256 曲线；密钥采用 SubjectPublicKeyInfo / PKCS#8 PEM 格式。</summary>
+public static class ECCHelper
+```
+
+---
+
+## 密钥生成
+
+### GenerateKeyPair
+
+基于 NIST P-256 曲线生成 ECDSA 密钥对，返回 PEM 字符串（公钥 SubjectPublicKeyInfo，私钥 PKCS#8 PrivateKeyInfo）。
+
+```csharp
+public static (string PublicKeyPem, string PrivateKeyPem) GenerateKeyPair()
+```
+
+**返回值：** 公钥与私钥的 PEM 字符串元组 `(PublicKeyPem, PrivateKeyPem)`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, privatePem) = ECCHelper.GenerateKeyPair();
+
+Console.WriteLine(publicPem);
+// -----BEGIN PUBLIC KEY-----
+// MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...
+// -----END PUBLIC KEY-----
+
+Console.WriteLine(privatePem);
+// -----BEGIN PRIVATE KEY-----
+// MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg...
+// -----END PRIVATE KEY-----
+```
+
+## 签名与验签
+
+### Sign
+
+使用私钥 PEM 对数据签名，返回 Base64 签名（SHA-256，ECDSA）。
+
+```csharp
+public static string Sign(string data, string privateKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| data | string | 待签名数据（UTF-8）。 |
+| privateKeyPem | string | PKCS#8 私钥 PEM。 |
+
+**返回值：** Base64 签名。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (_, privatePem) = ECCHelper.GenerateKeyPair();
+string sig = ECCHelper.Sign("payload to sign", privatePem);
+Console.WriteLine(sig);
+```
+
+### Verify
+
+使用公钥 PEM 验证签名。
+
+```csharp
+public static bool Verify(string data, string signatureBase64, string publicKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| data | string | 原始数据。 |
+| signatureBase64 | string | Base64 签名。 |
+| publicKeyPem | string | 公钥 PEM。 |
+
+**返回值：** 签名是否通过验证。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, privatePem) = ECCHelper.GenerateKeyPair();
+string sig = ECCHelper.Sign("payload to sign", privatePem);
+bool ok = ECCHelper.Verify("payload to sign", sig, publicPem);
+Console.WriteLine(ok); // True
+```
+
+## 密钥协商（ECDH）
+
+### DeriveSharedSecret
+
+使用 ECDH 协商共享密钥：先用 `ECDiffieHellman.DeriveKeyMaterial` 得到原始共享点（X 坐标），再经 SHA-256 派生为 32 字节密钥。
+
+```csharp
+public static byte[] DeriveSharedSecret(string privateKeyPem, string otherPartyPublicKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| privateKeyPem | string | 本方 PKCS#8 私钥 PEM。 |
+| otherPartyPublicKeyPem | string | 对方 SubjectPublicKeyInfo 公钥 PEM。 |
+
+**返回值：** 32 字节 SHA-256 派生密钥，可直接作为对称加密密钥使用。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+using System;
+
+// 双方各自的密钥对（应分别生成）
+var (alicePub, alicePriv) = ECCHelper.GenerateKeyPair();
+var (bobPub,   bobPriv)   = ECCHelper.GenerateKeyPair();
+
+// 双方各自用己方私钥 + 对方公钥派生共享密钥，结果应一致
+byte[] aliceKey = ECCHelper.DeriveSharedSecret(alicePriv, bobPub);
+byte[] bobKey   = ECCHelper.DeriveSharedSecret(bobPriv,   alicePub);
+
+Console.WriteLine(Convert.ToBase64String(aliceKey) == Convert.ToBase64String(bobKey)); // True
+```

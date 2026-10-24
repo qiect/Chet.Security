@@ -1,0 +1,245 @@
+---
+title: "Blake2Helper"
+description: "提供 Blake2b 与 Blake2s 摘要计算的工具类，支持可选密钥的 keyed 变体。"
+---
+
+# Blake2Helper 帮助类
+
+## 概述
+
+[Blake2Helper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Hash/Blake2.cs) 是一个静态帮助类，提供 Blake2 摘要算法的计算能力，基于 BouncyCastle 的 `Blake2bDigest`/`Blake2sDigest` 实现。Blake2b 默认输出 512 位（64 字节，128 字符十六进制），Blake2s 默认输出 256 位（32 字节，64 字符十六进制）。
+
+支持可选密钥（keyed Blake2b）变体；密钥为 `null` 或空数组时退回无密钥变体。
+
+## 主要特性
+
+- 🔐 **双变体支持** — 同时提供 Blake2b（512 位）与 Blake2s（256 位）
+- 🔑 **可选密钥** — Blake2b 支持 keyed 变体，密钥为空时退回无密钥变体
+- 📝 **多输入支持** — 接受字节数组、字符串（UTF-8 编码）输入
+- 🎨 **多输出格式** — 支持小写十六进制字符串与原始字节数组两种输出
+- ⚡ **高效快速** — Blake2 在现代 CPU 上比 SHA-2 更快，同时安全性相当
+- 🔧 **BouncyCastle 实现** — 在两个目标框架下行为一致
+- 🌐 **多目标框架** — 同时支持 `netstandard2.1` 与 `net8.0`
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class Blake2Helper
+{
+    // Blake2b（512 位）
+    public static string ComputeBlake2b(byte[] data);
+    public static string ComputeBlake2b(string text);
+    public static string ComputeBlake2b(byte[] data, byte[] key);
+    public static byte[] ComputeBlake2bBytes(byte[] data);
+    public static byte[] ComputeBlake2bBytes(byte[] data, byte[] key);
+
+    // Blake2s（256 位）
+    public static string ComputeBlake2s(byte[] data);
+    public static string ComputeBlake2s(string text);
+    public static byte[] ComputeBlake2sBytes(byte[] data);
+}
+```
+
+---
+
+## Blake2b
+
+Blake2b 是面向 64 位平台的变体，默认输出 512 位（64 字节，128 字符十六进制）摘要。
+
+### ComputeBlake2b(byte[] data)
+
+计算字节数组的 Blake2b 摘要（512 位，无密钥），返回小写十六进制字符串。
+
+```csharp
+public static string ComputeBlake2b(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 128 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F }; // "hello"
+string hash = Blake2Helper.ComputeBlake2b(data);
+// hash: "..." (128 chars)
+```
+
+### ComputeBlake2b(string text)
+
+将字符串按 UTF-8 编码后计算 Blake2b 摘要（512 位，无密钥），返回小写十六进制字符串。
+
+```csharp
+public static string ComputeBlake2b(string text);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的字符串 |
+
+**返回值：** 128 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = Blake2Helper.ComputeBlake2b("hello");
+// hash: "..." (128 chars)
+```
+
+### ComputeBlake2b(byte[] data, byte[] key)
+
+计算字节数组与密钥的 keyed Blake2b 摘要（512 位），返回小写十六进制字符串。
+
+```csharp
+public static string ComputeBlake2b(byte[] data, byte[] key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+| key | `byte[]` | HMAC 密钥；为 `null` 或空数组时使用无密钥变体 |
+
+**返回值：** 128 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+byte[] key = new byte[] { 0x73, 0x65, 0x63, 0x72, 0x65, 0x74 }; // "secret"
+string hash = Blake2Helper.ComputeBlake2b(data, key);
+// hash: "..." (128 chars)
+```
+
+### ComputeBlake2bBytes(byte[] data)
+
+计算字节数组的 Blake2b 摘要（512 位，无密钥），返回原始字节数组（64 字节）。
+
+```csharp
+public static byte[] ComputeBlake2bBytes(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 64 字节长度的原始摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] hash = Blake2Helper.ComputeBlake2bBytes("hello"u8.ToArray());
+// hash.Length == 64
+```
+
+### ComputeBlake2bBytes(byte[] data, byte[] key)
+
+计算字节数组与密钥的 keyed Blake2b 摘要（512 位），返回原始字节数组（64 字节）。
+
+```csharp
+public static byte[] ComputeBlake2bBytes(byte[] data, byte[] key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+| key | `byte[]` | HMAC 密钥；为 `null` 或空数组时使用无密钥变体 |
+
+**返回值：** 64 字节长度的原始摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = "hello"u8.ToArray();
+byte[] key = "secret"u8.ToArray();
+byte[] hash = Blake2Helper.ComputeBlake2bBytes(data, key);
+// hash.Length == 64
+```
+
+## Blake2s
+
+Blake2s 是面向 32 位平台的变体，默认输出 256 位（32 字节，64 字符十六进制）摘要。
+
+### ComputeBlake2s(byte[] data)
+
+计算字节数组的 Blake2s 摘要（256 位，无密钥），返回小写十六进制字符串。
+
+```csharp
+public static string ComputeBlake2s(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 64 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+string hash = Blake2Helper.ComputeBlake2s(data);
+// hash: "..." (64 chars)
+```
+
+### ComputeBlake2s(string text)
+
+将字符串按 UTF-8 编码后计算 Blake2s 摘要（256 位，无密钥），返回小写十六进制字符串。
+
+```csharp
+public static string ComputeBlake2s(string text);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的字符串 |
+
+**返回值：** 64 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = Blake2Helper.ComputeBlake2s("hello");
+// hash: "..." (64 chars)
+```
+
+### ComputeBlake2sBytes(byte[] data)
+
+计算字节数组的 Blake2s 摘要（256 位，无密钥），返回原始字节数组（32 字节）。
+
+```csharp
+public static byte[] ComputeBlake2sBytes(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 32 字节长度的原始摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] hash = Blake2Helper.ComputeBlake2sBytes("hello"u8.ToArray());
+// hash.Length == 32
+```

@@ -1,0 +1,159 @@
+---
+title: "SM3Helper"
+description: "提供国密 SM3 摘要计算的工具类，输出 256 位十六进制或 Base64 摘要。"
+---
+
+# SM3Helper 帮助类
+
+## 概述
+
+[SM3Helper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Hash/SM3.cs) 是一个静态帮助类，提供国密 SM3 摘要算法的计算能力，基于 BouncyCastle 的 `SM3Digest` 实现。输出长度固定为 256 位（32 字节，64 字符十六进制），适用于国密合规场景下的数据完整性校验与数字签名。
+
+## 主要特性
+
+- 🇨🇳 **国密合规** — 实现国家密码管理局 GM/T 标准的 SM3 密码杂凑算法
+- 🔐 **固定输出** — 256 位（32 字节）摘要，返回 64 字符小写十六进制字符串
+- 📝 **多输入支持** — 接受字节数组、字符串（UTF-8 编码）输入
+- 🎨 **多输出格式** — 支持小写十六进制、Base64、原始字节数组三种输出
+- 🔧 **BouncyCastle 实现** — 在两个目标框架下行为一致
+- 🌐 **多目标框架** — 同时支持 `netstandard2.1` 与 `net8.0`
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class SM3Helper
+{
+    public static string ComputeHash(byte[] data);
+    public static string ComputeHash(string text);
+    public static string ComputeHashBase64(byte[] data);
+    public static string ComputeHashBase64(string text);
+    public static byte[] ComputeHashBytes(byte[] data);
+}
+```
+
+---
+
+## 十六进制摘要
+
+### ComputeHash(byte[] data)
+
+计算字节数组的 SM3 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHash(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 64 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F }; // "hello"
+string hash = SM3Helper.ComputeHash(data);
+// hash: "becbb2ae..."
+```
+
+### ComputeHash(string text)
+
+将字符串按 UTF-8 编码后计算 SM3 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHash(string text);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的字符串 |
+
+**返回值：** 64 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = SM3Helper.ComputeHash("hello");
+// hash: "becbb2ae..."
+```
+
+## Base64 摘要
+
+### ComputeHashBase64(byte[] data)
+
+计算字节数组的 SM3 摘要，返回 Base64 字符串。
+
+```csharp
+public static string ComputeHashBase64(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** Base64 编码的摘要字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+string hash = SM3Helper.ComputeHashBase64(data);
+// hash: "vsuyrlqT..."
+```
+
+### ComputeHashBase64(string text)
+
+将字符串按 UTF-8 编码后计算 SM3 摘要，返回 Base64 字符串。
+
+```csharp
+public static string ComputeHashBase64(string text);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的字符串 |
+
+**返回值：** Base64 编码的摘要字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = SM3Helper.ComputeHashBase64("hello");
+// hash: "vsuyrlqT..."
+```
+
+## 原始字节数组摘要
+
+### ComputeHashBytes(byte[] data)
+
+计算字节数组的 SM3 摘要，返回原始字节数组（32 字节）。
+
+```csharp
+public static byte[] ComputeHashBytes(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 32 字节长度的原始摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] hash = SM3Helper.ComputeHashBytes("hello"u8.ToArray());
+// hash.Length == 32
+```

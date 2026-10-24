@@ -1,0 +1,189 @@
+---
+title: "MD5Helper"
+description: "提供 MD5 摘要计算的工具类，输出 128 位十六进制或 Base64 摘要。"
+---
+
+# MD5Helper 帮助类
+
+## 概述
+
+[MD5Helper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Hash/MD5.cs) 是一个静态帮助类，提供 MD5 摘要算法的计算能力，输出长度固定为 128 位（16 字节，32 字符十六进制）。
+
+> ⚠️ **安全警告：** MD5 已不满足抗碰撞要求，**不应用于密码存储或任何安全场景**，仅适用于校验和、文件指纹等非安全用途。如需安全哈希，请使用 [SHAHelper](./sha)（SHA-256 及以上）或 [SM3Helper](./sm3)（国密 SM3）。
+
+## 主要特性
+
+- 🔐 **固定输出** — 128 位（16 字节）摘要，返回 32 字符小写十六进制字符串
+- 📝 **多输入支持** — 接受字节数组、字符串（UTF-8 编码）输入
+- 🎨 **多输出格式** — 支持小写十六进制、Base64、原始字节数组三种输出
+- 📁 **文件摘要** — 直接读取文件流计算摘要，适合大文件
+- 🌐 **多目标框架** — 同时支持 `netstandard2.1` 与 `net8.0`
+- ⚠️ **非安全用途** — 仅用于校验和/指纹，不应用于密码存储
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class MD5Helper
+{
+    public static string ComputeHash(byte[] data);
+    public static string ComputeHash(string text);
+    public static string ComputeHashBase64(byte[] data);
+    public static string ComputeHashBase64(string text);
+    public static byte[] ComputeHashBytes(byte[] data);
+    public static string ComputeFileHash(string filePath);
+}
+```
+
+---
+
+## 十六进制摘要
+
+### ComputeHash(byte[] data)
+
+计算字节数组的 MD5 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHash(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 32 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F }; // "hello"
+string hash = MD5Helper.ComputeHash(data);
+// hash: "5d41402abc4b2a76b9719d911017c592"
+```
+
+### ComputeHash(string text)
+
+将字符串按 UTF-8 编码后计算 MD5 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHash(string text);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的字符串 |
+
+**返回值：** 32 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = MD5Helper.ComputeHash("hello");
+// hash: "5d41402abc4b2a76b9719d911017c592"
+```
+
+## Base64 摘要
+
+### ComputeHashBase64(byte[] data)
+
+计算字节数组的 MD5 摘要，返回 Base64 字符串。
+
+```csharp
+public static string ComputeHashBase64(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** Base64 编码的摘要字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+string hash = MD5Helper.ComputeHashBase64(data);
+// hash: "XUFAKrxLKQ5ivXsU9bg0sw=="
+```
+
+### ComputeHashBase64(string text)
+
+将字符串按 UTF-8 编码后计算 MD5 摘要，返回 Base64 字符串。
+
+```csharp
+public static string ComputeHashBase64(string text);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的字符串 |
+
+**返回值：** Base64 编码的摘要字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = MD5Helper.ComputeHashBase64("hello");
+// hash: "XUFAKrxLKQ5ivXsU9bg0sw=="
+```
+
+## 原始字节数组摘要
+
+### ComputeHashBytes(byte[] data)
+
+计算字节数组的 MD5 摘要，返回原始字节数组（16 字节）。
+
+```csharp
+public static byte[] ComputeHashBytes(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 16 字节长度的原始摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] hash = MD5Helper.ComputeHashBytes("hello"u8.ToArray());
+// hash.Length == 16
+```
+
+## 文件摘要
+
+### ComputeFileHash(string filePath)
+
+读取文件并计算其 MD5 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeFileHash(string filePath);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| filePath | `string` | 文件绝对或相对路径 |
+
+**返回值：** 32 字符长度的小写十六进制摘要。
+
+**异常：** 文件不存在时抛出 `FileNotFoundException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = MD5Helper.ComputeFileHash(@"C:\Files\archive.zip");
+// hash: "d41d8cd98f00b204e9800998ecf8427e"（空文件）
+```

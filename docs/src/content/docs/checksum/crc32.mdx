@@ -1,0 +1,167 @@
+---
+title: "CRC32Helper"
+description: "提供 CRC32 校验和计算的工具类，基于 IEEE 802.3 / zip 多项式，输出 32 位无符号整数或 8 字符小写十六进制。"
+---
+
+# CRC32Helper 帮助类
+
+## 概述
+
+[CRC32Helper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Checksum/CRC32.cs) 是一个静态帮助类，提供 CRC32 校验和算法的计算能力，采用 IEEE 802.3 / zip 多项式（`0xEDB88320`），反射输入与输出，适用于数据完整性校验、文件指纹等非安全用途。
+
+## 主要特性
+
+- 🔢 **标准算法** — IEEE 802.3 / zip 多项式 `0xEDB88320`，反射输入输出
+- 📝 **多输入支持** — 接受字节数组、字符串（UTF-8 编码）输入
+- 🎨 **多输出格式** — 支持无符号整数、8 字符小写十六进制、4 字节小端序字节数组
+- 📁 **文件校验** — 分块读取文件流计算校验和（8KB 缓冲），适合大文件
+- ⚡ **查表优化** — 内置 256 项预计算查找表，单字节处理为查表 + 异或
+- 🌐 **多目标框架** — 同时支持 `netstandard2.1` 与 `net8.0`
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class CRC32Helper
+{
+    public static uint Compute(byte[] data);
+    public static string ComputeHex(byte[] data);
+    public static string ComputeHex(string text);
+    public static string ComputeFileHex(string filePath);
+    public static byte[] ComputeBytes(byte[] data);
+}
+```
+
+---
+
+## 数值校验和
+
+### Compute(byte[] data)
+
+计算给定字节数组的 CRC32 校验和，返回 32 位无符号整数。
+
+```csharp
+public static uint Compute(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 输入字节数组 |
+
+**返回值：** CRC32 校验和（32 位无符号整数）。
+
+**异常：** `data` 为 `null` 时抛出 `ArgumentNullException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = "hello"u8.ToArray();
+uint crc = CRC32Helper.Compute(data);
+// crc: 0x3610A686
+```
+
+## 十六进制校验和
+
+### ComputeHex(byte[] data)
+
+计算给定字节数组的 CRC32 校验和，并以 8 字符小写十六进制返回。
+
+```csharp
+public static string ComputeHex(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 输入字节数组 |
+
+**返回值：** 8 字符长度的小写十六进制校验和。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = "hello"u8.ToArray();
+string hex = CRC32Helper.ComputeHex(data);
+// hex: "3610a686"
+```
+
+### ComputeHex(string text)
+
+将字符串按 UTF-8 编码后计算 CRC32 校验和，并以 8 字符小写十六进制返回。
+
+```csharp
+public static string ComputeHex(string text);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的字符串 |
+
+**返回值：** 8 字符长度的小写十六进制校验和。
+
+**异常：** `text` 为 `null` 或空字符串时抛出 `ArgumentException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hex = CRC32Helper.ComputeHex("hello");
+// hex: "3610a686"
+```
+
+## 字节数组校验和
+
+### ComputeBytes(byte[] data)
+
+计算 CRC32 校验和，并以 4 字节小端序返回。
+
+```csharp
+public static byte[] ComputeBytes(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 输入字节数组 |
+
+**返回值：** 4 字节长度的小端序校验和字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] bytes = CRC32Helper.ComputeBytes("hello"u8.ToArray());
+// bytes: [0x86, 0xA6, 0x10, 0x36]
+```
+
+## 文件校验和
+
+### ComputeFileHex(string filePath)
+
+分块读取文件并计算 CRC32 校验和，返回 8 字符小写十六进制。
+
+```csharp
+public static string ComputeFileHex(string filePath);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| filePath | `string` | 文件绝对或相对路径 |
+
+**返回值：** 8 字符长度的小写十六进制校验和。
+
+**异常：** `filePath` 为 `null` 或空字符串时抛出 `ArgumentException`；文件不存在时抛出 `FileNotFoundException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hex = CRC32Helper.ComputeFileHex(@"C:\Files\archive.zip");
+// hex: "d4258c89"（示例值，依文件内容而定）
+```

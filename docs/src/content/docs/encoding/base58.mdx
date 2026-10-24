@@ -1,0 +1,144 @@
+---
+title: "Base58Helper"
+description: "Base58 编码/解码静态帮助类，使用 Bitcoin 码表，去除易混淆字符。"
+---
+
+# Base58Helper 帮助类
+
+## 概述
+
+[Base58Helper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Encoding/Base58.cs) 是一个静态帮助类，使用 Bitcoin Base58 码表实现 Base58 编码/解码，码表去除易混淆字符 `0`、`O`、`I`、`l`，常用于比特币地址、短链接以及需要人工抄写识别的编码场景。
+
+## 主要特性
+
+- 🪙 **Bitcoin 码表** — 使用 Bitcoin Base58 码表（无 `0`、`O`、`I`、l）
+- 🚫 **去易混淆字符** — 自动剔除视觉易混淆字符，便于人工识别
+- 🔄 **双向转换** — 支持字节数组与 Base58 字符串互转
+- 📝 **字符串直转** — 提供 UTF-8 字符串与 Base58 的直接互转方法
+- 🧹 **容错空白** — 解码时自动跳过前导空白与中间空白
+- 🪜 **前导 0 处理** — 正确处理字节数组前导 0 与 Base58 前导 `1` 的对应关系
+- 📦 **静态类** — 全部为静态方法，无需实例化即可调用
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class Base58Helper
+```
+
+---
+
+## 常量
+
+### BitcoinAlphabet
+
+Bitcoin Base58 码表（无 `0`、`O`、`I`、`l`）。
+
+```csharp
+public const string BitcoinAlphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+```
+
+---
+
+## 编码方法
+
+### Encode
+
+将字节数组编码为 Base58 字符串。
+
+```csharp
+public static string Encode(byte[] bytes)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| bytes | byte[] | 输入字节数组 |
+
+**返回值：** Base58 字符串；空数组返回 `string.Empty`。字节数组前导 0 字节会编码为前导 `1`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] bytes = System.Text.Encoding.UTF8.GetBytes("hello");
+string b58 = Base58Helper.Encode(bytes);
+// b58 = "Cn8eVZg"
+```
+
+### EncodeString
+
+将字符串按 UTF-8 编码后转为 Base58。
+
+```csharp
+public static string EncodeString(string text)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| text | string | 输入字符串 |
+
+**返回值：** Base58 字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string b58 = Base58Helper.EncodeString("hello");
+// b58 = "Cn8eVZg"
+```
+
+---
+
+## 解码方法
+
+### Decode
+
+将 Base58 字符串解码为字节数组。
+
+```csharp
+public static byte[] Decode(string base58)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| base58 | string | Base58 字符串，自动跳过前导与中间空白 |
+
+**返回值：** 解码后的字节数组。Base58 前导 `1` 会还原为字节数组前导 0 字节。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] bytes = Base58Helper.Decode("Cn8eVZg");
+// bytes = { 0x68, 0x65, 0x6C, 0x6C, 0x6F }，对应 "hello"
+
+// 带空白的输入同样支持
+byte[] ok = Base58Helper.Decode("  Cn8e VZg  ");
+```
+
+### DecodeToString
+
+将 Base58 字符串解码为 UTF-8 字符串。
+
+```csharp
+public static string DecodeToString(string base58)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| base58 | string | Base58 字符串，自动跳过前导与中间空白 |
+
+**返回值：** 解码后的 UTF-8 字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string text = Base58Helper.DecodeToString("Cn8eVZg");
+// text = "hello"
+```

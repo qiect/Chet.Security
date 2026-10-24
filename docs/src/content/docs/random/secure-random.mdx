@@ -1,0 +1,308 @@
+---
+title: "SecureRandomHelper"
+description: "密码学安全的随机数生成静态帮助类，基于 RandomNumberGenerator 提供字节、整数、浮点、字符串与口令等常用生成方法。"
+---
+
+# SecureRandomHelper 帮助类
+
+## 概述
+
+[SecureRandomHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Random/SecureRandom.cs) 是一个静态帮助类，基于 .NET 的 `RandomNumberGenerator` 实现密码学安全的随机数生成，覆盖字节、整数、长整数、浮点数、十六进制/Base64 字符串、口令与 UUID 等常用场景，区间采样采用拒绝采样消除模取偏，适用于密钥/令牌/盐值/口令生成以及任何不可预测性要求较高的场景。
+
+## 主要特性
+
+- 🔐 **密码学安全** — 底层基于 `RandomNumberGenerator.Fill`，由操作系统熵源驱动
+- 🔢 **多类型输出** — 一次性生成字节、`int`、`long`、`double` 等基础类型
+- 🧽 **拒绝采样** — 区间 `GenerateInt(min, max)` 使用拒绝采样消除模取偏，结果无统计偏差
+- 🎲 **高精度浮点** — `GenerateDouble` 取 53 位尾数，覆盖 `double` 全部精度
+- 📝 **字符串与口令** — 提供十六进制、Base64、可配置码表与符号的随机口令
+- 🆔 **UUID 生成** — 直接产出标准 D 格式带连字符的 GUID 字符串
+- 📦 **静态类** — 全部为静态方法，无需实例化即可调用
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class SecureRandomHelper
+```
+
+---
+
+## 常量
+
+### AlphabetLower
+
+小写字母码表，用于口令生成的字符集之一。
+
+```csharp
+public const string AlphabetLower = "abcdefghijklmnopqrstuvwxyz";
+```
+
+### AlphabetUpper
+
+大写字母码表，用于口令生成的字符集之一。
+
+```csharp
+public const string AlphabetUpper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+```
+
+### Digits
+
+数字码表，用于口令生成的字符集之一。
+
+```csharp
+public const string Digits = "0123456789";
+```
+
+### Symbols
+
+符号码表，可选地参与口令生成以提升强度。
+
+```csharp
+public const string Symbols = "!@#$%^&*()-_=+[]{};:,.?/";
+```
+
+---
+
+## 字节与缓冲区
+
+### GenerateBytes
+
+生成密码学安全的随机字节数组。
+
+```csharp
+public static byte[] GenerateBytes(int length)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| length | int | 字节数，必须大于等于 0 |
+
+**返回值：** 长度为 `length` 的随机字节数组。`length == 0` 时返回空数组。
+
+**异常：** `length < 0` 时抛出 `ArgumentOutOfRangeException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] salt = SecureRandomHelper.GenerateBytes(16);
+// salt.Length == 16，可用于 PBKDF2/Argon2 盐值
+```
+
+### Fill
+
+用密码学安全的随机数据填充给定缓冲区，避免额外分配。
+
+```csharp
+public static void Fill(byte[] buffer)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| buffer | byte[] | 待填充缓冲区，原位修改 |
+
+**返回值：** 无。随机字节直接写入 `buffer`。
+
+**异常：** `buffer` 为 `null` 时抛出 `ArgumentNullException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] nonce = new byte[12];
+SecureRandomHelper.Fill(nonce);
+// nonce 中所有 12 个字节均已被随机数据覆盖
+```
+
+---
+
+## 整数与长整数
+
+### GenerateInt()
+
+生成密码学安全的随机 `int`，覆盖 `int32` 全域（含负数）。
+
+```csharp
+public static int GenerateInt()
+```
+
+**返回值：** `int.MinValue` ~ `int.MaxValue` 范围内的随机整数。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+int n = SecureRandomHelper.GenerateInt();
+// n 可能为负，例如 -1395049212
+```
+
+### GenerateInt(int minInclusive, int maxExclusive)
+
+生成密码学安全的指定范围内的随机整数（不含上界，使用拒绝采样消除模取偏）。
+
+```csharp
+public static int GenerateInt(int minInclusive, int maxExclusive)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| minInclusive | int | 下界（含） |
+| maxExclusive | int | 上界（不含） |
+
+**返回值：** 位于 `[minInclusive, maxExclusive)` 区间的随机整数。算法通过丢弃落在偏置区间的样本，确保结果在区间内均匀分布。
+
+**异常：** `maxExclusive <= minInclusive` 时抛出 `ArgumentOutOfRangeException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+int dice = SecureRandomHelper.GenerateInt(1, 7);        // 模拟六面骰：1~6
+int verifyCode = SecureRandomHelper.GenerateInt(0, 1000000); // 6 位数字验证码
+```
+
+### GenerateLong
+
+生成密码学安全的随机 `long`，覆盖 `int64` 全域（含负数）。
+
+```csharp
+public static long GenerateLong()
+```
+
+**返回值：** `long.MinValue` ~ `long.MaxValue` 范围内的随机长整数。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+long id = SecureRandomHelper.GenerateLong();
+// id 可能为负，例如 5034287890123456
+```
+
+---
+
+## 浮点数
+
+### GenerateDouble
+
+生成密码学安全的随机 `double`，区间为 `[0, 1)`。
+
+```csharp
+public static double GenerateDouble()
+```
+
+**返回值：** `[0.0, 1.0)` 区间内的随机双精度浮点数。算法取 64 位随机数的高 53 位作为尾数，再除以 `2^53`，以充分利用 `double` 的全部精度。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+double p = SecureRandomHelper.GenerateDouble();
+// p ∈ [0, 1)，例如 0.617483921054321
+```
+
+---
+
+## 字符串与口令
+
+### GenerateHex
+
+生成密码学安全的随机十六进制字符串（小写）。
+
+```csharp
+public static string GenerateHex(int byteLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| byteLength | int | 字节数（输出字符串长度为 `byteLength * 2`） |
+
+**返回值：** 小写十六进制字符串，长度为 `byteLength * 2`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string token = SecureRandomHelper.GenerateHex(16);
+// token.Length == 32，例如 "3f9a7c2e1b8d4056a9f2c7e1d4b6083a"
+```
+
+### GenerateBase64
+
+生成密码学安全的随机 Base64 字符串。
+
+```csharp
+public static string GenerateBase64(int byteLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| byteLength | int | 字节数 |
+
+**返回值：** Base64 编码字符串，长度约为 `4 * ceil(byteLength / 3)`（含可能的 `=` 填充）。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string token = SecureRandomHelper.GenerateBase64(24);
+// 例如 "q8v3r9k2Jh5N+vYp1zMwTqLxR6s="
+```
+
+### GeneratePassword
+
+生成密码学安全的随机口令，可配置长度与是否包含符号字符。
+
+```csharp
+public static string GeneratePassword(int length = 16, bool includeSymbols = true)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| length | int | 口令长度，默认 16 |
+| includeSymbols | bool | 是否包含符号字符，默认 `true` |
+
+**返回值：** 随机口令字符串。默认字符集为 `AlphabetLower + AlphabetUpper + Digits + Symbols`；`includeSymbols = false` 时仅含字母与数字。每个字符通过拒绝采样从字符集中均匀抽取。
+
+**异常：** `length <= 0` 时抛出 `ArgumentOutOfRangeException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string pwd = SecureRandomHelper.GeneratePassword();
+// 例如 "k7#MqL!2vR$9pXz_"
+
+string alnum = SecureRandomHelper.GeneratePassword(8, includeSymbols: false);
+// 例如 "aB3xYn9K"，仅含字母与数字
+```
+
+### GenerateUuid
+
+生成 GUID 字符串（带连字符的标准 D 格式）。
+
+```csharp
+public static string GenerateUuid()
+```
+
+**返回值：** 36 字符长度的 GUID 字符串，格式为 `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string id = SecureRandomHelper.GenerateUuid();
+// 例如 "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
+```

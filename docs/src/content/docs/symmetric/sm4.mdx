@@ -1,0 +1,141 @@
+---
+title: "SM4Helper"
+description: "SM4 国密对称加密工具类，采用 CBC 模式与 PKCS7 填充，基于 BouncyCastle 实现。"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+# SM4Helper 帮助类
+
+## 概述
+
+[SM4Helper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Symmetric/SM4.cs) 是一个静态帮助类，封装了国密 SM4 对称加密的常用操作，采用 CBC 模式与 PKCS7 填充，基于 BouncyCastle `SM4Engine` 实现。
+
+## 主要特性
+
+- 🇨🇳 **国密 SM4** — 符合 GM/T 标准的对称加密算法
+- 📦 **CBC + PKCS7** — 固定使用 CBC 模式与 PKCS7 填充
+- 🔑 **密钥规范化** — 字符串重载自动将密钥与 IV 均规范化为 128 位
+- 📋 **双双重载** — 提供 `string` 与 `byte[]` 两套重载
+- 🔄 **跨平台一致** — 多目标 `netstandard2.1` + `net8.0`，基于 BouncyCastle 统一实现
+- 🧩 **BouncyCastle 内核** — 直接使用 `SM4Engine` + `CbcBlockCipher` + `Pkcs7Padding`
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class SM4Helper
+```
+
+---
+
+## 字符串加解密
+
+### Encrypt(string, string, string)
+
+使用 CBC + PKCS7 加密 UTF-8 明文，返回 Base64 密文。密钥与 IV 均规范化为 128 位。
+
+```csharp
+public static string Encrypt(string plain, string key, string iv)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `plain` | `string` | 明文字符串 |
+| `key` | `string` | 密钥（任意长度，将规范化为 128 位） |
+| `iv` | `string` | 初始化向量（任意长度，将规范化为 128 位） |
+
+**返回值：** Base64 编码的密文。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string cipher = SM4Helper.Encrypt("hello world", "my-password", "my-iv");
+```
+
+### Decrypt(string, string, string)
+
+解密 Base64 密文为 UTF-8 明文。密钥与 IV 均规范化为 128 位。
+
+```csharp
+public static string Decrypt(string cipherBase64, string key, string iv)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `cipherBase64` | `string` | Base64 编码的密文 |
+| `key` | `string` | 密钥（任意长度，将规范化为 128 位） |
+| `iv` | `string` | 初始化向量（任意长度，将规范化为 128 位） |
+
+**返回值：** UTF-8 明文字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string cipher = SM4Helper.Encrypt("hello world", "my-password", "my-iv");
+string plain = SM4Helper.Decrypt(cipher, "my-password", "my-iv");
+```
+
+---
+
+## 字节数组加解密
+
+### Encrypt(byte[], byte[], byte[])
+
+使用 CBC + PKCS7 加密字节数组。要求 key/iv 各 16 字节。
+
+```csharp
+public static byte[] Encrypt(byte[] plain, byte[] key, byte[] iv)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `plain` | `byte[]` | 明文字节数组 |
+| `key` | `byte[]` | 16 字节密钥 |
+| `iv` | `byte[]` | 16 字节 IV |
+
+**返回值：** 密文字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] key = new byte[16]; // 实际场景应使用安全随机数
+byte[] iv = new byte[16];
+byte[] cipher = SM4Helper.Encrypt(
+    System.Text.Encoding.UTF8.GetBytes("hello"), key, iv);
+```
+
+### Decrypt(byte[], byte[], byte[])
+
+使用 CBC + PKCS7 解密字节数组。要求 key/iv 各 16 字节。
+
+```csharp
+public static byte[] Decrypt(byte[] cipher, byte[] key, byte[] iv)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `cipher` | `byte[]` | 密文字节数组 |
+| `key` | `byte[]` | 16 字节密钥 |
+| `iv` | `byte[]` | 16 字节 IV |
+
+**返回值：** 明文字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] key = new byte[16];
+byte[] iv = new byte[16];
+byte[] cipher = SM4Helper.Encrypt(
+    System.Text.Encoding.UTF8.GetBytes("hello"), key, iv);
+byte[] plain = SM4Helper.Decrypt(cipher, key, iv);
+```

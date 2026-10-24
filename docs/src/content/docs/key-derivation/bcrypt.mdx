@@ -1,0 +1,86 @@
+---
+title: "BCryptHelper"
+description: "提供 BCrypt 兼容 API 形态的密码哈希帮助类（底层为 PBKDF2-HMAC-SHA256）。"
+---
+
+# BCryptHelper 帮助类
+
+## 概述
+
+[BCryptHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/KeyDerivation/BCrypt.cs) 是一个静态帮助类。**注意：本类并非原生 BCrypt 实现**，而是基于 PBKDF2-HMAC-SHA256 的密码哈希封装，提供与 BCrypt 兼容的 API 形态，避免引入额外的 NuGet 依赖。输出格式为 `pbkdf2$iterations$saltBase64$hashBase64`，便于存储与解析；其 `Prefix` 字段如实标注为 `pbkdf2`，以便调用方识别真实算法。
+
+## 主要特性
+
+- ⚠️ **诚实标识** — 并非原生 BCrypt，底层使用 PBKDF2-HMAC-SHA256，`Prefix` 字段如实标注为 `pbkdf2`
+- 🔐 **密码哈希** — 生成包含算法、迭代次数、盐与哈希值的格式化字符串
+- ✅ **恒定时间校验** — `VerifyPassword` 使用恒定时间比较，规避时序攻击
+- 🧂 **自动随机盐** — 每次哈希自动生成 16 字节随机盐值
+- 🔁 **可配置迭代次数** — 默认 100000 次迭代，强度高于 `PBKDF2Helper` 默认值
+- ⚡ **零依赖** — 仅依赖 BCL，不引入额外 NuGet 包
+
+## 类定义
+
+```csharp
+public static class BCryptHelper
+{
+    public const string Prefix = "pbkdf2";
+    public const int DefaultIterations = 100000;
+    public const int DefaultHashLength = 32;
+    public const int DefaultSaltLength = 16;
+}
+```
+
+---
+
+## 密码哈希
+
+### HashPassword
+
+使用 PBKDF2-HMAC-SHA256 哈希密码，返回 `pbkdf2$iterations$saltBase64$hashBase64` 格式字符串。
+
+```csharp
+public static string HashPassword(string password, int iterations = DefaultIterations)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| password | string | 原始密码。 |
+| iterations | int | 迭代次数，默认 100000。 |
+
+**返回值：** 包含算法、迭代次数、盐与哈希值的格式化字符串 `pbkdf2$iterations$saltBase64$hashBase64`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hashed = BCryptHelper.HashPassword("password");
+// 输出示例：pbkdf2$100000$<base64-salt>$<base64-hash>
+```
+
+## 密码校验
+
+### VerifyPassword
+
+校验密码是否与已存储的哈希字符串匹配（恒定时间比较）。
+
+```csharp
+public static bool VerifyPassword(string password, string stored)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| password | string | 待校验密码。 |
+| stored | string | 已存储的 `pbkdf2$...` 格式哈希字符串。 |
+
+**返回值：** 匹配返回 `true`；否则返回 `false`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hashed = BCryptHelper.HashPassword("password");
+bool ok = BCryptHelper.VerifyPassword("password", hashed);  // true
+bool bad = BCryptHelper.VerifyPassword("wrong", hashed);     // false
+```

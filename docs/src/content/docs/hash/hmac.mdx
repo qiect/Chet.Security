@@ -1,0 +1,530 @@
+---
+title: "HMACHelper"
+description: "提供基于 MD5/SHA-1/SHA-256/SHA-384/SHA-512/SM3 的 HMAC 计算的工具类。"
+---
+
+# HMACHelper 帮助类
+
+## 概述
+
+[HMACHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Hash/HMAC.cs) 是一个静态帮助类，提供基于哈希消息认证码（HMAC）的计算能力，覆盖 HMAC-MD5、HMAC-SHA1、HMAC-SHA256、HMAC-SHA384、HMAC-SHA512 与 HMAC-SM3 六种变体。
+
+非 SM3 系列使用 .NET BCL 的 `HMACMD5`/`HMACSHA1`/`HMACSHA256`/`HMACSHA384`/`HMACSHA512` 实现；HMAC-SM3 使用 BouncyCastle 的 `HMac` + `SM3Digest` 实现。
+
+## 主要特性
+
+- 🔐 **算法齐全** — 覆盖 HMAC-MD5/SHA1/SHA256/SHA384/SHA512/SM3 六种变体
+- 🇨🇳 **国密支持** — HMAC-SM3 基于 BouncyCastle 的 `HMac` + `SM3Digest` 实现
+- 📝 **多输入支持** — 接受字节数组、字符串（UTF-8 编码）输入
+- 🎨 **多输出格式** — 支持小写十六进制字符串与原始字节数组两种输出
+- 🔑 **密钥验证** — 通过密钥保证消息完整性与真实性
+- 🌐 **多目标框架** — 同时支持 `netstandard2.1` 与 `net8.0`
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class HMACHelper
+{
+    // HMAC-MD5
+    public static string ComputeHmacMD5(byte[] data, byte[] key);
+    public static string ComputeHmacMD5(string text, string key);
+    public static byte[] ComputeHmacMD5Bytes(byte[] data, byte[] key);
+
+    // HMAC-SHA1
+    public static string ComputeHmacSHA1(byte[] data, byte[] key);
+    public static string ComputeHmacSHA1(string text, string key);
+    public static byte[] ComputeHmacSHA1Bytes(byte[] data, byte[] key);
+
+    // HMAC-SHA256
+    public static string ComputeHmacSHA256(byte[] data, byte[] key);
+    public static string ComputeHmacSHA256(string text, string key);
+    public static byte[] ComputeHmacSHA256Bytes(byte[] data, byte[] key);
+
+    // HMAC-SHA384
+    public static string ComputeHmacSHA384(byte[] data, byte[] key);
+    public static string ComputeHmacSHA384(string text, string key);
+    public static byte[] ComputeHmacSHA384Bytes(byte[] data, byte[] key);
+
+    // HMAC-SHA512
+    public static string ComputeHmacSHA512(byte[] data, byte[] key);
+    public static string ComputeHmacSHA512(string text, string key);
+    public static byte[] ComputeHmacSHA512Bytes(byte[] data, byte[] key);
+
+    // HMAC-SM3
+    public static string ComputeHmacSM3(byte[] data, byte[] key);
+    public static string ComputeHmacSM3(string text, string key);
+    public static byte[] ComputeHmacSM3Bytes(byte[] data, byte[] key);
+}
+```
+
+---
+
+## HMAC-MD5
+
+> ⚠️ **安全提示：** HMAC-MD5 不建议用于新系统的安全场景，仅在与遗留系统兼容时使用。
+
+### ComputeHmacMD5(byte[] data, byte[] key)
+
+计算字节数组与密钥的 HMAC-MD5，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHmacMD5(byte[] data, byte[] key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的消息数据 |
+| key | `byte[]` | HMAC 密钥 |
+
+**返回值：** 32 字符长度的小写十六进制 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+byte[] key = new byte[] { 0x73, 0x65, 0x63, 0x72, 0x65, 0x74 }; // "secret"
+string mac = HMACHelper.ComputeHmacMD5(data, key);
+// mac: "..." (32 chars)
+```
+
+### ComputeHmacMD5(string text, string key)
+
+将消息字符串与密钥字符串（均为 UTF-8 编码）计算 HMAC-MD5，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHmacMD5(string text, string key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的消息字符串 |
+| key | `string` | HMAC 密钥字符串 |
+
+**返回值：** 32 字符长度的小写十六进制 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string mac = HMACHelper.ComputeHmacMD5("hello", "secret");
+// mac: "..." (32 chars)
+```
+
+### ComputeHmacMD5Bytes(byte[] data, byte[] key)
+
+计算字节数组与密钥的 HMAC-MD5，返回原始字节数组（16 字节）。
+
+```csharp
+public static byte[] ComputeHmacMD5Bytes(byte[] data, byte[] key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的消息数据 |
+| key | `byte[]` | HMAC 密钥 |
+
+**返回值：** 16 字节长度的原始 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] mac = HMACHelper.ComputeHmacMD5Bytes("hello"u8.ToArray(), "secret"u8.ToArray());
+// mac.Length == 16
+```
+
+## HMAC-SHA1
+
+> ⚠️ **安全提示：** HMAC-SHA1 在多数新系统中已被 HMAC-SHA256 取代，仅在与遗留系统兼容时使用。
+
+### ComputeHmacSHA1(byte[] data, byte[] key)
+
+计算字节数组与密钥的 HMAC-SHA1，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHmacSHA1(byte[] data, byte[] key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的消息数据 |
+| key | `byte[]` | HMAC 密钥 |
+
+**返回值：** 40 字符长度的小写十六进制 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+byte[] key = new byte[] { 0x73, 0x65, 0x63, 0x72, 0x65, 0x74 };
+string mac = HMACHelper.ComputeHmacSHA1(data, key);
+// mac: "..." (40 chars)
+```
+
+### ComputeHmacSHA1(string text, string key)
+
+将消息字符串与密钥字符串（均为 UTF-8 编码）计算 HMAC-SHA1，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHmacSHA1(string text, string key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的消息字符串 |
+| key | `string` | HMAC 密钥字符串 |
+
+**返回值：** 40 字符长度的小写十六进制 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string mac = HMACHelper.ComputeHmacSHA1("hello", "secret");
+// mac: "..." (40 chars)
+```
+
+### ComputeHmacSHA1Bytes(byte[] data, byte[] key)
+
+计算字节数组与密钥的 HMAC-SHA1，返回原始字节数组（20 字节）。
+
+```csharp
+public static byte[] ComputeHmacSHA1Bytes(byte[] data, byte[] key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的消息数据 |
+| key | `byte[]` | HMAC 密钥 |
+
+**返回值：** 20 字节长度的原始 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] mac = HMACHelper.ComputeHmacSHA1Bytes("hello"u8.ToArray(), "secret"u8.ToArray());
+// mac.Length == 20
+```
+
+## HMAC-SHA256
+
+HMAC-SHA256 是最常用的 HMAC 变体，输出 256 位（32 字节，64 字符十六进制）MAC。
+
+### ComputeHmacSHA256(byte[] data, byte[] key)
+
+计算字节数组与密钥的 HMAC-SHA256，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHmacSHA256(byte[] data, byte[] key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的消息数据 |
+| key | `byte[]` | HMAC 密钥 |
+
+**返回值：** 64 字符长度的小写十六进制 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+byte[] key = new byte[] { 0x73, 0x65, 0x63, 0x72, 0x65, 0x74 };
+string mac = HMACHelper.ComputeHmacSHA256(data, key);
+// mac: "..." (64 chars)
+```
+
+### ComputeHmacSHA256(string text, string key)
+
+将消息字符串与密钥字符串（均为 UTF-8 编码）计算 HMAC-SHA256，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHmacSHA256(string text, string key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的消息字符串 |
+| key | `string` | HMAC 密钥字符串 |
+
+**返回值：** 64 字符长度的小写十六进制 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string mac = HMACHelper.ComputeHmacSHA256("hello", "secret");
+// mac: "..." (64 chars)
+```
+
+### ComputeHmacSHA256Bytes(byte[] data, byte[] key)
+
+计算字节数组与密钥的 HMAC-SHA256，返回原始字节数组（32 字节）。
+
+```csharp
+public static byte[] ComputeHmacSHA256Bytes(byte[] data, byte[] key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的消息数据 |
+| key | `byte[]` | HMAC 密钥 |
+
+**返回值：** 32 字节长度的原始 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] mac = HMACHelper.ComputeHmacSHA256Bytes("hello"u8.ToArray(), "secret"u8.ToArray());
+// mac.Length == 32
+```
+
+## HMAC-SHA384
+
+HMAC-SHA384 输出 384 位（48 字节，96 字符十六进制）MAC。
+
+### ComputeHmacSHA384(byte[] data, byte[] key)
+
+计算字节数组与密钥的 HMAC-SHA384，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHmacSHA384(byte[] data, byte[] key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的消息数据 |
+| key | `byte[]` | HMAC 密钥 |
+
+**返回值：** 96 字符长度的小写十六进制 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+byte[] key = new byte[] { 0x73, 0x65, 0x63, 0x72, 0x65, 0x74 };
+string mac = HMACHelper.ComputeHmacSHA384(data, key);
+// mac: "..." (96 chars)
+```
+
+### ComputeHmacSHA384(string text, string key)
+
+将消息字符串与密钥字符串（均为 UTF-8 编码）计算 HMAC-SHA384，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHmacSHA384(string text, string key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的消息字符串 |
+| key | `string` | HMAC 密钥字符串 |
+
+**返回值：** 96 字符长度的小写十六进制 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string mac = HMACHelper.ComputeHmacSHA384("hello", "secret");
+// mac: "..." (96 chars)
+```
+
+### ComputeHmacSHA384Bytes(byte[] data, byte[] key)
+
+计算字节数组与密钥的 HMAC-SHA384，返回原始字节数组（48 字节）。
+
+```csharp
+public static byte[] ComputeHmacSHA384Bytes(byte[] data, byte[] key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的消息数据 |
+| key | `byte[]` | HMAC 密钥 |
+
+**返回值：** 48 字节长度的原始 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] mac = HMACHelper.ComputeHmacSHA384Bytes("hello"u8.ToArray(), "secret"u8.ToArray());
+// mac.Length == 48
+```
+
+## HMAC-SHA512
+
+HMAC-SHA512 输出 512 位（64 字节，128 字符十六进制）MAC，适合高安全等级场景。
+
+### ComputeHmacSHA512(byte[] data, byte[] key)
+
+计算字节数组与密钥的 HMAC-SHA512，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHmacSHA512(byte[] data, byte[] key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的消息数据 |
+| key | `byte[]` | HMAC 密钥 |
+
+**返回值：** 128 字符长度的小写十六进制 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+byte[] key = new byte[] { 0x73, 0x65, 0x63, 0x72, 0x65, 0x74 };
+string mac = HMACHelper.ComputeHmacSHA512(data, key);
+// mac: "..." (128 chars)
+```
+
+### ComputeHmacSHA512(string text, string key)
+
+将消息字符串与密钥字符串（均为 UTF-8 编码）计算 HMAC-SHA512，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHmacSHA512(string text, string key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的消息字符串 |
+| key | `string` | HMAC 密钥字符串 |
+
+**返回值：** 128 字符长度的小写十六进制 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string mac = HMACHelper.ComputeHmacSHA512("hello", "secret");
+// mac: "..." (128 chars)
+```
+
+### ComputeHmacSHA512Bytes(byte[] data, byte[] key)
+
+计算字节数组与密钥的 HMAC-SHA512，返回原始字节数组（64 字节）。
+
+```csharp
+public static byte[] ComputeHmacSHA512Bytes(byte[] data, byte[] key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的消息数据 |
+| key | `byte[]` | HMAC 密钥 |
+
+**返回值：** 64 字节长度的原始 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] mac = HMACHelper.ComputeHmacSHA512Bytes("hello"u8.ToArray(), "secret"u8.ToArray());
+// mac.Length == 64
+```
+
+## HMAC-SM3
+
+HMAC-SM3 是基于国密 SM3 算法的 HMAC 变体，使用 BouncyCastle 的 `HMac` + `SM3Digest` 实现，输出 256 位（32 字节，64 字符十六进制）MAC，适用于国密合规场景。
+
+### ComputeHmacSM3(byte[] data, byte[] key)
+
+计算字节数组与密钥的 HMAC-SM3（BouncyCastle 实现），返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHmacSM3(byte[] data, byte[] key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的消息数据 |
+| key | `byte[]` | HMAC 密钥 |
+
+**返回值：** 64 字符长度的小写十六进制 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+byte[] key = new byte[] { 0x73, 0x65, 0x63, 0x72, 0x65, 0x74 };
+string mac = HMACHelper.ComputeHmacSM3(data, key);
+// mac: "..." (64 chars)
+```
+
+### ComputeHmacSM3(string text, string key)
+
+将消息字符串与密钥字符串（均为 UTF-8 编码）计算 HMAC-SM3，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeHmacSM3(string text, string key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的消息字符串 |
+| key | `string` | HMAC 密钥字符串 |
+
+**返回值：** 64 字符长度的小写十六进制 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string mac = HMACHelper.ComputeHmacSM3("hello", "secret");
+// mac: "..." (64 chars)
+```
+
+### ComputeHmacSM3Bytes(byte[] data, byte[] key)
+
+计算字节数组与密钥的 HMAC-SM3（BouncyCastle 实现），返回原始字节数组（32 字节）。
+
+```csharp
+public static byte[] ComputeHmacSM3Bytes(byte[] data, byte[] key);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的消息数据 |
+| key | `byte[]` | HMAC 密钥 |
+
+**返回值：** 32 字节长度的原始 MAC。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] mac = HMACHelper.ComputeHmacSM3Bytes("hello"u8.ToArray(), "secret"u8.ToArray());
+// mac.Length == 32
+```

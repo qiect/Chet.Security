@@ -1,68 +1,151 @@
 # Chet.Security
 
-轻量级的安全/加密工具集合（C#），包含常用的哈希、对称加密、非对称加密和编码工具的封装，便于在项目中快速使用常见加密操作。
+全面的 C# 安全与加密工具类库，覆盖国密（SM2/SM3/SM4）与国际化主流算法，多目标 `netstandard2.1` + `net8.0`。
 
-简介
-- 仓库描述：安全工具类，MD5、AES、DES、TripDes、Rsa、Base64
-- 语言：C#
-- 目标：为常见加密操作提供简单、易用、安全的封装 API，方便在业务代码中直接调用。
+## 简介
 
-主要功能
-- MD5：计算字符串或字节流的 MD5 摘要（以十六进制字符串输出）
-- Base64：字符串与字节数组的 Base64 编码/解码
-- AES（对称加密）：支持 AES-CBC（带 IV）常用场景，返回 Base64 编码密文
-- DES / TripleDES：常规对称加密辅助方法
-- RSA（非对称加密）：生成密钥对，公钥加密/私钥解密，签名/验签
+- **仓库描述**：安全与加密工具类库，哈希 / 对称加密 / 非对称加密 / 密钥派生 / 编码 / 随机数 / 校验和
+- **语言**：C#
+- **目标**：为常见加密操作提供简单、易用、安全的统一封装 API，方便在业务代码中直接调用
+- **当前版本**：1.1.0
+- **目标框架**：`netstandard2.1`、`net8.0`
+- **依赖**：[`BouncyCastle.Cryptography`](https://www.nuget.org/packages/BouncyCastle.Cryptography) 2.5.1（国密 SM2/SM3/SM4、SHA-3、Blake2、ChaCha20-Poly1305、Argon2 等算法内核）
 
-快速开始
+## 主要功能
 
-1) 从源码引用
-- 克隆仓库并在解决方案中引用项目，或把源文件直接拷贝到你的项目中。
-  git clone https://github.com/qiect/Chet.Security.git
-  dotnet build
+| 分类 | 覆盖算法 |
+| --- | --- |
+| 哈希 | MD5、SHA-1/256/384/512、SHA3-256/384/512、SM3、HMAC（MD5/SHA1/SHA256/SHA384/SHA512/SM3）、Blake2b/Blake2s |
+| 对称加密 | AES（CBC/ECB/GCM）、DES、TripleDES、RC2、ChaCha20-Poly1305、SM4 |
+| 非对称加密 | RSA（OAEP-SHA256 + PSS-SHA256）、DSA（SHA-256withDSA）、ECC（NIST P-256，ECDSA + ECDH）、SM2（C1C3C2） |
+| 密钥派生 | PBKDF2、BCrypt 形态（底层 PBKDF2）、SCrypt、HKDF、Argon2id |
+| 编码 | Hex、Base64（标准 + URL 安全）、Base32、Base58（Bitcoin 码表） |
+| 随机数 | `SecureRandomHelper`（基于 `RandomNumberGenerator`，含口令/UUID 生成） |
+| 校验和 | CRC32、CRC64、Adler-32 |
+| 统一门面 | `SecurityHelper`（密钥规范化 / 随机数 / 格式转换）、`ISecurityService` + `SecurityService`（按 `CryptoAlgorithm` 分发） |
 
-2) 以项目引用方式在你的 .NET 项目中使用
-- 在你的 solution 中添加对 Chet.Security 项目的引用，或把该项目打包成 NuGet（如果需要我可以帮你写 .nuspec / .csproj 打包示例）。
+## 安装
 
-示例（快速演示）
-在 C# 程序中：
-```csharp
-using Chet.Security;
-...
-// MD5
-var md5 = MD5Util.ComputeHashHex("hello world");
-
-// Base64
-var b64 = Base64Util.EncodeToString("hello");
-
-// AES（示例 key/iv 必须按实现要求长度传入）
-var key = "0123456789abcdef"; // 16 字节 (128-bit)
-var iv = "abcdef9876543210";  // 16 字节
-var cipher = AESUtil.EncryptStringToBase64("hello", key, iv);
-var plain = AESUtil.DecryptStringFromBase64(cipher, key, iv);
-
-// RSA
-var (pubPem, priPem) = RSAUtil.GenerateKeyPair(2048);
-var ct = RSAUtil.EncryptWithPublic("secret", pubPem);
-var pt = RSAUtil.DecryptWithPrivate(ct, priPem);
+```bash
+dotnet add package Chet.Security --version 1.1.0
 ```
 
-详细 API 文档
-见 docs/API.md（同仓库内）。该文档列出了各个工具类的主要方法、参数与返回值示例。
+```powershell
+Install-Package Chet.Security -Version 1.1.0
+```
 
-设计原则与注意事项
-- 密钥长度与 IV：对称加密方法通常要求固定长度的 Key 与 IV（例如 AES-128 使用 16 字节 key）；文档中会标注每个方法的要求。
-- 编码格式：为了方便存储/传输，库中对密文通常使用 Base64 表示；如果需要原始字节输出，也有相应方法（或可改写）。
-- 安全建议：不要在生产中硬编码密钥；建议使用安全随机数生成密钥并妥善存储（如使用 KeyVault、操作系统密钥库等）。
+```xml
+<PackageReference Include="Chet.Security" Version="1.1.0" />
+```
 
-贡献
+## 快速示例
+
+```csharp
+using Chet.Security;
+
+// ── 哈希 ──
+string md5    = MD5Helper.ComputeHash("hello");
+string sha256 = SHAHelper.ComputeSHA256("hello");
+string sha3   = SHAHelper.ComputeSHA3_512("hello");
+string sm3    = SM3Helper.ComputeHash("hello");
+string hmac   = HMACHelper.ComputeHmacSHA256("data", "secret");
+string blake2 = Blake2Helper.ComputeBlake2b("hello");
+
+// ── 对称加密（字符串密钥自动规范化） ──
+string cipher = AESHelper.Encrypt("plaintext", "password", "my-iv");
+string plain  = AESHelper.Decrypt(cipher, "password", "my-iv");
+
+string gcm = AESHelper.EncryptGCM("data", "key", "nonce");       // AES-GCM（AEAD）
+string dec = AESHelper.DecryptGCM(gcm, "key", "nonce");
+
+string sm4 = SM4Helper.Encrypt("plaintext", "password", "my-iv"); // 国密 SM4
+string chacha = ChaCha20Poly1305Helper.Encrypt("data", "key", "nonce");
+
+// ── 非对称加密 ──
+var (rsaPub, rsaPriv) = RSAHelper.GenerateKeyPair(2048);          // 返回 PEM 字符串
+string ct = RSAHelper.Encrypt("hello", rsaPub);
+string pt = RSAHelper.Decrypt(ct, rsaPriv);
+string sig = RSAHelper.SignData("payload", rsaPriv);
+bool ok = RSAHelper.VerifyData("payload", sig, rsaPub);
+
+var (sm2Pub, sm2Priv) = SM2Helper.GenerateKeyPair();              // 国密 SM2，Base64 密钥
+string c = SM2Helper.Encrypt("hello", sm2Pub);
+
+var (eccPub, eccPriv) = ECCHelper.GenerateKeyPair();             // NIST P-256
+string es = ECCHelper.Sign("data", eccPriv);
+bool ev = ECCHelper.Verify("data", es, eccPub);
+
+// ── 密钥派生 ──
+byte[] salt = PBKDF2Helper.GenerateSalt(16);
+byte[] key = PBKDF2Helper.DeriveBytes("password", salt, iterations: 20000);
+string argon = Argon2Helper.DeriveHex("password", "salt");       // Argon2id
+string hkdf = HKDFHelper.DeriveKeyHex("ikm", "salt", "context");
+
+// 密码哈希（BCryptHelper 形态，底层 PBKDF2-HMAC-SHA256）
+string hashed = BCryptHelper.HashPassword("password");
+bool valid = BCryptHelper.VerifyPassword("password", hashed);
+
+// ── 编码 / 校验和 ──
+string hex = HexHelper.Encode(new byte[] { 0x01, 0x02 });
+string crc32 = CRC32Helper.ComputeHash("hello");
+
+// ── 统一门面 ──
+string token = SecurityHelper.GenerateRandomBase64(32);
+var service = new SecurityService(CryptoAlgorithm.SHA256);
+string h = service.Encode("hello");  // 返回小写十六进制摘要
+```
+
+## 详细 API 文档
+
+完整的 API 文档基于 Astro + Starlight 构建，部署在 GitHub Pages：
+
+🔗 **[https://qiect.github.io/Chet.Security/](https://qiect.github.io/Chet.Security/)**
+
+按算法分类组织（编码 / 哈希 / 对称加密 / 非对称加密 / 密钥派生 / 随机数 / 校验和 / 统一门面），每个帮助类的方法都有签名、参数表、返回值与可运行示例。
+
+## 项目结构
+
+```
+Chet.Security/
+├── Chet.Security.slnx
+├── Chet.Security/                  # 主库（netstandard2.1;net8.0）
+│   ├── Chet.Security.csproj
+│   ├── GlobalUsings.cs
+│   ├── Polyfills.cs                # 跨目标 API 兼容层
+│   ├── Enums.cs                    # KeyNormalizeMode / OutputFormat / CryptoAlgorithm
+│   ├── SecurityHelper.cs          # 共享辅助（密钥规范化、随机数、格式转换）
+│   ├── ISecurityService.cs        # 统一门面接口
+│   ├── SecurityService.cs  # 按 CryptoAlgorithm 分发的默认实现
+│   ├── Encoding/                   # Hex / Base64 / Base32 / Base58
+│   ├── Hash/                       # MD5 / SHA / SM3 / HMAC / Blake2
+│   ├── Symmetric/                  # AES / DES / TripleDES / RC2 / ChaCha20Poly1305 / SM4
+│   ├── Asymmetric/                 # RSA / DSA / ECC / SM2
+│   ├── KeyDerivation/             # PBKDF2 / BCrypt / SCrypt / HKDF / Argon2
+│   ├── Random/                     # SecureRandom
+│   └── Checksum/                   # CRC32 / CRC64 / Adler32
+├── Chet.Security.Tests/            # xUnit 单元测试（300+ 项）
+├── docs/                           # Astro Starlight 文档源码
+└── .github/workflows/deploy.yml    # GitHub Pages 自动部署
+```
+
+## 设计原则与注意事项
+
+- **命名空间**：所有帮助类统一在 `Chet.Security` 根命名空间下，文件夹仅做物理组织，避免与 BCL 的 `System.Text.Encoding` / `System.Random` / `HashAlgorithm` 等类型冲突。
+- **命名约定**：静态帮助类一律 `XxxHelper`（如 `MD5Helper`、`AESHelper`、`RSAHelper`）。
+- **密钥规范化**：对称加密的字符串重载通过 `SecurityHelper.NormalizeKey` 自动将任意长度密钥规范化为算法要求的固定长度（默认 `KeyNormalizeMode.Hash`，可切换为左右补零）。
+- **多目标兼容**：`Polyfills.cs` 暴露 `CryptoPolyfill`，统一 `Convert.ToHexString` / `ArgumentException.ThrowIfNullOrEmpty` 等 API 在 `netstandard2.1` 与 `net8.0` 下的行为。
+- **安全建议**：不要在生产中硬编码密钥；建议使用 `SecureRandomHelper` 或 `SecurityHelper.GenerateRandomBytes` 生成密钥，并通过 KeyVault / 操作系统密钥库妥善存储。MD5 / SHA-1 / DES / RC2 已不满足现代安全要求，仅作遗留兼容用途。
+
+## 贡献
+
 非常欢迎贡献：
-- 提交 issue 报 bug、提特性
-- 提交 PR（遵循 repo 中的编码风格）
-- 如需我帮助把 issue 拆成子任务/生成 PR 描述，也可以告诉我
+- 提交 issue 报 bug、提特性需求
+- 提交 PR（遵循仓库编码风格，新增方法请补 xUnit 测试与 .mdx 文档）
 
-许可证
-仓库未指定许可证时请在使用前确认许可（建议 MIT）。需要我为仓库添加 LICENSE 文件可以告诉我你希望的许可证类型，我会生成对应文件并提交建议内容。
+## 许可证
 
-联系
-如果你希望我为本仓库生成 README 的英文版本、自动化测试样例、或添加 CI（GitHub Actions）工作流，也可以告诉我具体要求，我会继续补全。
+MIT License。详见 [LICENSE](./LICENSE)。
+
+## 联系
+
+文档 / 示例 / 自动化测试 / CI 工作流如有需求，欢迎提 issue 反馈。

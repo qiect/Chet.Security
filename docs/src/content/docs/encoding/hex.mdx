@@ -1,0 +1,127 @@
+---
+title: "HexHelper"
+description: "十六进制编码/解码静态帮助类，提供字节与十六进制字符串之间的双向转换。"
+---
+
+# HexHelper 帮助类
+
+## 概述
+
+[HexHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Encoding/Hex.cs) 是一个静态帮助类，提供字节与十六进制字符串之间的双向转换，编码结果统一为小写形式，常用于哈希摘要展示、密钥序列化以及二进制数据的可读化表示。
+
+## 主要特性
+
+- 🔤 **小写输出** — 编码结果统一为小写十六进制字符
+- 🔄 **双向转换** — 支持字节数组与十六进制字符串互转
+- 📝 **字符串直转** — 提供 UTF-8 字符串与十六进制的直接互转方法
+- 🔡 **大小写兼容** — 解码时同时接受大小写十六进制字符
+- 📦 **静态类** — 全部为静态方法，无需实例化即可调用
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class HexHelper
+```
+
+---
+
+## 编码方法
+
+### Encode
+
+将字节数组转换为小写十六进制字符串。
+
+```csharp
+public static string Encode(byte[] bytes)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| bytes | byte[] | 输入字节数组 |
+
+**返回值：** 小写十六进制字符串，长度为 `bytes.Length * 2`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] bytes = new byte[] { 0x12, 0xAB, 0xCD };
+string hex = HexHelper.Encode(bytes);
+// hex = "12abcd"
+```
+
+### EncodeString
+
+将字符串按 UTF-8 编码后转为小写十六进制字符串。
+
+```csharp
+public static string EncodeString(string text)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| text | string | 输入字符串 |
+
+**返回值：** 输入字符串 UTF-8 字节序列对应的小写十六进制字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hex = HexHelper.EncodeString("hello");
+// hex = "68656c6c6f"
+```
+
+---
+
+## 解码方法
+
+### Decode
+
+将十六进制字符串（大小写均可）解码为字节数组。
+
+```csharp
+public static byte[] Decode(string hex)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| hex | string | 十六进制字符串，长度必须为偶数 |
+
+**返回值：** 解码后的字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] bytes = HexHelper.Decode("48656c6c6f");
+// bytes = { 0x48, 0x65, 0x6C, 0x6C, 0x6F }，对应 "Hello"
+```
+
+### DecodeToString
+
+将十六进制字符串解码为 UTF-8 字符串。
+
+```csharp
+public static string DecodeToString(string hex)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| hex | string | 十六进制字符串，长度必须为偶数 |
+
+**返回值：** 解码后的 UTF-8 字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string text = HexHelper.DecodeToString("68656c6c6f");
+// text = "hello"
+```

@@ -1,0 +1,139 @@
+---
+title: "DESHelper"
+description: "DES 对称加密工具类，使用 CBC 模式与 PKCS7 填充（已不安全，仅用于遗留数据）。"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+# DESHelper 帮助类
+
+## 概述
+
+[DESHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Symmetric/DES.cs) 是一个静态帮助类，封装了 DES 对称加密的常用操作，使用 CBC 模式与 PKCS7 填充。
+
+> ⚠️ **安全警告：** DES 密钥长度仅 64 位（含 8 位奇偶校验，有效强度 56 位），已无法抵御暴力破解，不应用于新系统，仅作历史兼容与遗留数据解密使用。请优先使用 [AESHelper](./aes) 或 [TripleDESHelper](./triple-des)。
+
+## 主要特性
+
+- 🔓 **遗留兼容** — 用于解密历史数据，不建议用于新系统
+- 📦 **CBC + PKCS7** — 固定使用 CBC 模式与 PKCS7 填充
+- 🔑 **密钥自动派生** — 字符串重载从 `key` 同时派生 64 位密钥与 IV
+- 📋 **双重重载** — 提供 `string` 与 `byte[]` 两套重载
+- 🧯 **弱密钥容错** — 遇到弱/半弱密钥时抛出带提示的 `CryptographicException`
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class DESHelper
+```
+
+---
+
+## 字符串加解密
+
+### Encrypt(string, string)
+
+使用 CBC + PKCS7 加密 UTF-8 明文，返回 Base64 密文。密钥与 IV 均由 `key` 规范化为 64 位。
+
+```csharp
+public static string Encrypt(string plain, string key)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `plain` | `string` | 明文字符串 |
+| `key` | `string` | 密钥（任意长度，将规范化为 64 位；同时用作 IV 来源） |
+
+**返回值：** Base64 编码的密文。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+// 仅用于遗留数据兼容场景
+string cipher = DESHelper.Encrypt("legacy data", "old-password");
+```
+
+### Decrypt(string, string)
+
+解密 Base64 密文为 UTF-8 明文。密钥与 IV 均由 `key` 规范化为 64 位。
+
+```csharp
+public static string Decrypt(string cipherBase64, string key)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `cipherBase64` | `string` | Base64 编码的密文 |
+| `key` | `string` | 密钥（任意长度，将规范化为 64 位；同时用作 IV 来源） |
+
+**返回值：** UTF-8 明文字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string cipher = DESHelper.Encrypt("legacy data", "old-password");
+string plain = DESHelper.Decrypt(cipher, "old-password");
+```
+
+---
+
+## 字节数组加解密
+
+### Encrypt(byte[], byte[], byte[])
+
+使用 CBC + PKCS7 加密字节数组。要求 key/iv 各 8 字节。
+
+```csharp
+public static byte[] Encrypt(byte[] plain, byte[] key, byte[] iv)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `plain` | `byte[]` | 明文字节数组 |
+| `key` | `byte[]` | 8 字节密钥 |
+| `iv` | `byte[]` | 8 字节 IV |
+
+**返回值：** 密文字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] key = new byte[8]; // 实际场景应使用安全随机数
+byte[] iv = new byte[8];
+byte[] cipher = DESHelper.Encrypt(System.Text.Encoding.UTF8.GetBytes("legacy"), key, iv);
+```
+
+### Decrypt(byte[], byte[], byte[])
+
+使用 CBC + PKCS7 解密字节数组。要求 key/iv 各 8 字节。
+
+```csharp
+public static byte[] Decrypt(byte[] cipher, byte[] key, byte[] iv)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `cipher` | `byte[]` | 密文字节数组 |
+| `key` | `byte[]` | 8 字节密钥 |
+| `iv` | `byte[]` | 8 字节 IV |
+
+**返回值：** 明文字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] key = new byte[8];
+byte[] iv = new byte[8];
+byte[] cipher = DESHelper.Encrypt(System.Text.Encoding.UTF8.GetBytes("legacy"), key, iv);
+byte[] plain = DESHelper.Decrypt(cipher, key, iv);
+```

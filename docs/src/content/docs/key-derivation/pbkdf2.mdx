@@ -1,0 +1,161 @@
+---
+title: "PBKDF2Helper"
+description: "基于 PBKDF2-HMAC-SHA256 的密钥派生与密码哈希静态帮助类。"
+---
+
+# PBKDF2Helper 帮助类
+
+## 概述
+
+[PBKDF2Helper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/KeyDerivation/PBKDF2.cs) 是一个静态帮助类，基于 .NET BCL 的 `Rfc2898DeriveBytes` 实现 PBKDF2-HMAC-SHA256 密钥派生算法，可用于密码哈希与密钥派生场景。该类支持以字节数组、Base64 或小写十六进制字符串形式输出派生密钥，并提供密码学安全的随机盐值生成方法。
+
+## 主要特性
+
+- 🔐 **标准算法** — 基于 PBKDF2-HMAC-SHA256（RFC 2898），由 BCL `Rfc2898DeriveBytes` 提供
+- 🧂 **内置盐值生成** — 提供 `GenerateSalt` 方法生成密码学安全随机盐
+- 📦 **多种输出格式** — 支持字节数组、Base64 字符串、小写十六进制字符串
+- 🔁 **可配置迭代次数** — 默认 10000 次迭代，可按需调整强度
+- 🎯 **多目标兼容** — 同时支持 `netstandard2.1` 与 `net8.0`
+- ⚡ **零依赖** — 仅依赖 BCL，不引入额外 NuGet 包
+
+## 类定义
+
+```csharp
+public static class PBKDF2Helper
+{
+    public const int DefaultIterations = 10000;
+    public const int DefaultDerivedLength = 32;
+}
+```
+
+---
+
+## 密钥派生
+
+### DeriveBytes（字节数组盐）
+
+使用 PBKDF2-HMAC-SHA256 从密码派生指定长度的字节数组，盐以字节数组形式给出。
+
+```csharp
+public static byte[] DeriveBytes(string password, byte[] salt, int iterations = DefaultIterations, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| password | string | 原始密码。 |
+| salt | byte[] | 盐值字节数组。 |
+| iterations | int | 迭代次数，默认 10000。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生出的密钥字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] salt = PBKDF2Helper.GenerateSalt(16);
+byte[] key = PBKDF2Helper.DeriveBytes("password", salt, iterations: 20000, derivedLength: 32);
+```
+
+### DeriveBytes（字符串盐）
+
+使用 PBKDF2-HMAC-SHA256 从密码派生指定长度的字节数组，盐以 UTF-8 字符串形式给出。
+
+```csharp
+public static byte[] DeriveBytes(string password, string salt, int iterations = DefaultIterations, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| password | string | 原始密码。 |
+| salt | string | 盐值字符串（按 UTF-8 编码）。 |
+| iterations | int | 迭代次数，默认 10000。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生出的密钥字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] key = PBKDF2Helper.DeriveBytes("password", "user-salt-value");
+```
+
+## 编码输出
+
+### DeriveBase64
+
+使用 PBKDF2-HMAC-SHA256 派生并以 Base64 字符串返回。
+
+```csharp
+public static string DeriveBase64(string password, string salt, int iterations = DefaultIterations, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| password | string | 原始密码。 |
+| salt | string | 盐值字符串（按 UTF-8 编码）。 |
+| iterations | int | 迭代次数，默认 10000。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生密钥的 Base64 字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string base64 = PBKDF2Helper.DeriveBase64("password", "salt");
+```
+
+### DeriveHex
+
+使用 PBKDF2-HMAC-SHA256 派生并以小写十六进制字符串返回。
+
+```csharp
+public static string DeriveHex(string password, string salt, int iterations = DefaultIterations, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| password | string | 原始密码。 |
+| salt | string | 盐值字符串（按 UTF-8 编码）。 |
+| iterations | int | 迭代次数，默认 10000。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生密钥的小写十六进制字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hex = PBKDF2Helper.DeriveHex("password", "salt");
+```
+
+## 盐值管理
+
+### GenerateSalt
+
+生成密码学安全的随机盐值。
+
+```csharp
+public static byte[] GenerateSalt(int length = 16)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| length | int | 盐值长度（字节），默认 16。 |
+
+**返回值：** 随机盐值字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] salt = PBKDF2Helper.GenerateSalt(16);
+byte[] key = PBKDF2Helper.DeriveBytes("password", salt);
+```

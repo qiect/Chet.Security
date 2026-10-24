@@ -1,0 +1,137 @@
+---
+title: "HKDFHelper"
+description: "基于 BouncyCastle 实现 RFC 5869 的 HKDF-SHA256 密钥派生静态帮助类。"
+---
+
+# HKDFHelper 帮助类
+
+## 概述
+
+[HKDFHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/KeyDerivation/HKDF.cs) 是一个静态帮助类，基于 BouncyCastle 的 `HkdfBytesGenerator` 实现 RFC 5869 中定义的 HKDF-SHA256 密钥派生算法，遵循 Extract-Then-Expand 流程，适用于从输入密钥材料（IKM）派生多个密钥的场景。该类支持字节数组、Base64 与小写十六进制字符串输出。
+
+## 主要特性
+
+- 📜 **遵循 RFC 5869** — 实现 HKDF 的 Extract-Then-Expand 两阶段流程
+- 🔧 **SHA-256 基础** — 基于 `Sha256Digest`，输出长度可配置
+- 🧂 **可选盐值** — 盐值可为 `null`，将按 RFC 5869 用 HashLen 长度的零字节替代
+- 🏷️ **上下文绑定** — 通过 `info` 参数将派生密钥与上下文绑定
+- 📦 **多种输出格式** — 支持字节数组、Base64 字符串、小写十六进制字符串
+- 🔗 **BouncyCastle 实现** — 基于 `Org.BouncyCastle.Crypto.Generators.HkdfBytesGenerator`
+
+## 类定义
+
+```csharp
+public static class HKDFHelper
+{
+    public const int DefaultDerivedLength = 32;
+}
+```
+
+---
+
+## 密钥派生
+
+### DeriveKey（字节数组输入）
+
+使用 HKDF-SHA256 从输入密钥材料派生指定长度的字节数组。
+
+```csharp
+public static byte[] DeriveKey(byte[] ikm, byte[] salt, byte[] info, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| ikm | byte[] | 输入密钥材料（IKM）字节数组。 |
+| salt | byte[] | 盐值字节数组；可为 `null`，将按 RFC 5869 用 HashLen 长度的零字节替代。 |
+| info | byte[] | 上下文信息字节数组；可为 `null`。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生出的密钥字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] ikm = System.Text.Encoding.UTF8.GetBytes("input-key-material");
+byte[] salt = System.Text.Encoding.UTF8.GetBytes("salt");
+byte[] info = System.Text.Encoding.UTF8.GetBytes("context");
+byte[] key = HKDFHelper.DeriveKey(ikm, salt, info, 32);
+```
+
+### DeriveKey（字符串输入）
+
+使用 HKDF-SHA256 派生，输入密钥材料、盐、信息均以 UTF-8 字符串形式给出。
+
+```csharp
+public static byte[] DeriveKey(string ikm, string salt, string info, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| ikm | string | 输入密钥材料字符串（按 UTF-8 编码）。 |
+| salt | string | 盐值字符串（按 UTF-8 编码）。 |
+| info | string | 上下文信息字符串（按 UTF-8 编码）。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生出的密钥字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] key = HKDFHelper.DeriveKey("input-key-material", "salt", "context");
+```
+
+## 编码输出
+
+### DeriveKeyBase64
+
+使用 HKDF-SHA256 派生并以 Base64 字符串返回。
+
+```csharp
+public static string DeriveKeyBase64(string ikm, string salt, string info, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| ikm | string | 输入密钥材料字符串（按 UTF-8 编码）。 |
+| salt | string | 盐值字符串（按 UTF-8 编码）。 |
+| info | string | 上下文信息字符串（按 UTF-8 编码）。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生密钥的 Base64 字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string base64 = HKDFHelper.DeriveKeyBase64("input-key-material", "salt", "context");
+```
+
+### DeriveKeyHex
+
+使用 HKDF-SHA256 派生并以小写十六进制字符串返回。
+
+```csharp
+public static string DeriveKeyHex(string ikm, string salt, string info, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| ikm | string | 输入密钥材料字符串（按 UTF-8 编码）。 |
+| salt | string | 盐值字符串（按 UTF-8 编码）。 |
+| info | string | 上下文信息字符串（按 UTF-8 编码）。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生密钥的小写十六进制字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hex = HKDFHelper.DeriveKeyHex("input-key-material", "salt", "context");
+```

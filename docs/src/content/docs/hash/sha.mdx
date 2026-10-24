@@ -1,0 +1,423 @@
+---
+title: "SHAHelper"
+description: "提供 SHA-1/SHA-256/SHA-384/SHA-512 及 SHA-3(256/384/512) 摘要计算的工具类。"
+---
+
+# SHAHelper 帮助类
+
+## 概述
+
+[SHAHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Hash/SHA.cs) 是一个静态帮助类，提供 SHA 系列摘要算法的计算能力，覆盖 SHA-1、SHA-2（256/384/512）与 SHA-3（256/384/512）三大族。
+
+其中 SHA-1/256/384/512 使用 .NET BCL 的 `SHA1`/`SHA256`/`SHA384`/`SHA512` 实现；SHA-3 在两个目标框架下均使用 BouncyCastle 的 `Sha3Digest` 实现，以规避 net8 SHA3 的平台限制并保持行为一致。
+
+## 主要特性
+
+- 🔐 **算法齐全** — 覆盖 SHA-1、SHA-2（256/384/512）、SHA-3（256/384/512）共 7 种变体
+- 📝 **多输入支持** — 接受字节数组、字符串（UTF-8 编码）输入
+- 🎨 **统一输出** — 一律返回小写十六进制字符串
+- 📁 **文件摘要** — 支持直接读取文件流计算 SHA-256 摘要
+- 🔧 **跨平台一致** — SHA-3 在 `netstandard2.1` 与 `net8.0` 下均使用 BouncyCastle 实现，行为统一
+- 🌐 **多目标框架** — 同时支持 `netstandard2.1` 与 `net8.0`
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class SHAHelper
+{
+    // SHA-1
+    public static string ComputeSHA1(byte[] data);
+    public static string ComputeSHA1(string text);
+
+    // SHA-2
+    public static string ComputeSHA256(byte[] data);
+    public static string ComputeSHA256(string text);
+    public static string ComputeSHA384(byte[] data);
+    public static string ComputeSHA384(string text);
+    public static string ComputeSHA512(byte[] data);
+    public static string ComputeSHA512(string text);
+
+    // SHA-3
+    public static string ComputeSHA3_256(byte[] data);
+    public static string ComputeSHA3_256(string text);
+    public static string ComputeSHA3_384(byte[] data);
+    public static string ComputeSHA3_384(string text);
+    public static string ComputeSHA3_512(byte[] data);
+    public static string ComputeSHA3_512(string text);
+
+    // 文件摘要
+    public static string ComputeFileSHA256(string filePath);
+}
+```
+
+---
+
+## SHA-1
+
+> ⚠️ **安全提示：** SHA-1 已被证明存在碰撞攻击，不应用于数字签名等安全场景，仅适用于校验和/指纹等非安全用途。
+
+### ComputeSHA1(byte[] data)
+
+计算字节数组的 SHA-1 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeSHA1(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 40 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F }; // "hello"
+string hash = SHAHelper.ComputeSHA1(data);
+// hash: "aaf4c61ddcc5e8a2dabede0f89bcc1c2a4bbd5a7"
+```
+
+### ComputeSHA1(string text)
+
+将字符串按 UTF-8 编码后计算 SHA-1 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeSHA1(string text);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的字符串 |
+
+**返回值：** 40 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = SHAHelper.ComputeSHA1("hello");
+// hash: "aaf4c61ddcc5e8a2dabede0f89bcc1c2a4bbd5a7"
+```
+
+## SHA-2
+
+SHA-2 系列包括 SHA-256、SHA-384、SHA-512 三种变体，使用 .NET BCL 实现，输出长度分别为 64/96/128 字符十六进制字符串。
+
+### ComputeSHA256(byte[] data)
+
+计算字节数组的 SHA-256 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeSHA256(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 64 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+string hash = SHAHelper.ComputeSHA256(data);
+// hash: "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+```
+
+### ComputeSHA256(string text)
+
+将字符串按 UTF-8 编码后计算 SHA-256 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeSHA256(string text);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的字符串 |
+
+**返回值：** 64 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = SHAHelper.ComputeSHA256("hello");
+// hash: "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+```
+
+### ComputeSHA384(byte[] data)
+
+计算字节数组的 SHA-384 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeSHA384(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 96 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+string hash = SHAHelper.ComputeSHA384(data);
+// hash: "15bb1acea6bd1a5e6cd0145b6f5e6d6c..." (96 chars)
+```
+
+### ComputeSHA384(string text)
+
+将字符串按 UTF-8 编码后计算 SHA-384 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeSHA384(string text);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的字符串 |
+
+**返回值：** 96 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = SHAHelper.ComputeSHA384("hello");
+// hash: "15bb1acea6bd1a5e6cd0145b6f5e6d6c..." (96 chars)
+```
+
+### ComputeSHA512(byte[] data)
+
+计算字节数组的 SHA-512 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeSHA512(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 128 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+string hash = SHAHelper.ComputeSHA512(data);
+// hash: "9b71d224bd62..." (128 chars)
+```
+
+### ComputeSHA512(string text)
+
+将字符串按 UTF-8 编码后计算 SHA-512 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeSHA512(string text);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的字符串 |
+
+**返回值：** 128 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = SHAHelper.ComputeSHA512("hello");
+// hash: "9b71d224bd62fc5d6a3b..." (128 chars)
+```
+
+## SHA-3
+
+SHA-3 系列包括 SHA3-256、SHA3-384、SHA3-512 三种变体，在 `netstandard2.1` 与 `net8.0` 下均使用 BouncyCastle 的 `Sha3Digest` 实现，规避 net8 内置 SHA3 的平台限制，输出长度与 SHA-2 对应变体一致。
+
+### ComputeSHA3_256(byte[] data)
+
+计算字节数组的 SHA3-256 摘要（BouncyCastle 实现），返回小写十六进制字符串。
+
+```csharp
+public static string ComputeSHA3_256(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 64 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+string hash = SHAHelper.ComputeSHA3_256(data);
+// hash: "8408c67c8ce0..." (64 chars)
+```
+
+### ComputeSHA3_256(string text)
+
+将字符串按 UTF-8 编码后计算 SHA3-256 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeSHA3_256(string text);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的字符串 |
+
+**返回值：** 64 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = SHAHelper.ComputeSHA3_256("hello");
+// hash: "8408c67c8ce0..." (64 chars)
+```
+
+### ComputeSHA3_384(byte[] data)
+
+计算字节数组的 SHA3-384 摘要（BouncyCastle 实现），返回小写十六进制字符串。
+
+```csharp
+public static string ComputeSHA3_384(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 96 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+string hash = SHAHelper.ComputeSHA3_384(data);
+// hash: "83d7e2085..." (96 chars)
+```
+
+### ComputeSHA3_384(string text)
+
+将字符串按 UTF-8 编码后计算 SHA3-384 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeSHA3_384(string text);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的字符串 |
+
+**返回值：** 96 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = SHAHelper.ComputeSHA3_384("hello");
+// hash: "83d7e2085..." (96 chars)
+```
+
+### ComputeSHA3_512(byte[] data)
+
+计算字节数组的 SHA3-512 摘要（BouncyCastle 实现），返回小写十六进制字符串。
+
+```csharp
+public static string ComputeSHA3_512(byte[] data);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| data | `byte[]` | 待计算的字节数据 |
+
+**返回值：** 128 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] data = new byte[] { 0x68, 0x65, 0x6C, 0x6C, 0x6F };
+string hash = SHAHelper.ComputeSHA3_512(data);
+// hash: "9e834f5c..." (128 chars)
+```
+
+### ComputeSHA3_512(string text)
+
+将字符串按 UTF-8 编码后计算 SHA3-512 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeSHA3_512(string text);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| text | `string` | 待计算的字符串 |
+
+**返回值：** 128 字符长度的小写十六进制摘要。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = SHAHelper.ComputeSHA3_512("hello");
+// hash: "9e834f5c..." (128 chars)
+```
+
+## 文件摘要
+
+### ComputeFileSHA256(string filePath)
+
+读取文件并计算其 SHA-256 摘要，返回小写十六进制字符串。
+
+```csharp
+public static string ComputeFileSHA256(string filePath);
+```
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| filePath | `string` | 文件绝对或相对路径 |
+
+**返回值：** 64 字符长度的小写十六进制摘要。
+
+**异常：** 文件不存在时抛出 `FileNotFoundException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hash = SHAHelper.ComputeFileSHA256(@"C:\Files\archive.zip");
+// hash: "e3b0c44298fc1c149afbf4c8996fb924..." (64 chars)
+```

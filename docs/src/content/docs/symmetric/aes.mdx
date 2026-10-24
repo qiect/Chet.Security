@@ -1,0 +1,304 @@
+---
+title: "AESHelper"
+description: "AES 对称加密工具类，支持 CBC/ECB（PKCS7 填充）与 GCM 认证加密模式。"
+---
+
+import { Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# AESHelper 帮助类
+
+## 概述
+
+[AESHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Symmetric/AES.cs) 是一个静态帮助类，封装了 AES 对称加密的常用操作。CBC/ECB 模式基于 BCL `Aes` 实现，填充固定为 PKCS7；GCM 模式在 `net8.0` 下使用 `AesGcm`，在 `netstandard2.1` 下回退至 BouncyCastle `GcmBlockCipher`。GCM 输出格式为 `密文 || 16 字节 Tag`。
+
+## 主要特性
+
+- 🔐 **多模式支持** — 同时覆盖 CBC、ECB 与 GCM（AEAD）三种主流模式
+- 🧂 **PKCS7 填充** — CBC/ECB 固定使用 PKCS7 填充，互操作性强
+- 🏷️ **AEAD 认证加密** — GCM 模式输出 `密文 || 16 字节 Tag`，提供完整性校验
+- 🔑 **密钥规范化** — 字符串重载自动将密钥规范化为 256 位、IV 为 128 位（基于哈希派生）
+- 📦 **双重载入** — 同时提供 `string` 与 `byte[]` 两套重载，适配不同输入场景
+- 🔄 **跨平台一致** — 多目标 `netstandard2.1` + `net8.0`，polyfill 统一行为
+- 🎲 **密钥与 IV 生成** — 内置 `GenerateKey` / `GenerateIV` 工具方法
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class AESHelper
+```
+
+---
+
+## CBC/ECB 字符串加解密
+
+### Encrypt(string, string, string, CipherMode)
+
+使用指定模式加密 UTF-8 明文，返回 Base64 密文。密钥规范化为 256 位，IV 规范化为 128 位（ECB 忽略 IV）。
+
+```csharp
+public static string Encrypt(string plain, string key, string iv, CipherMode mode = CipherMode.CBC)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `plain` | `string` | 明文字符串 |
+| `key` | `string` | 密钥（任意长度，将规范化为 256 位） |
+| `iv` | `string` | 初始化向量（任意长度，将规范化为 128 位；ECB 模式忽略） |
+| `mode` | `CipherMode` | 加密模式，默认 `CipherMode.CBC` |
+
+**返回值：** Base64 编码的密文。
+
+**示例：**
+
+```csharp
+using System.Security.Cryptography;
+using Chet.Security;
+
+string cipher = AESHelper.Encrypt("hello world", "my-password", "my-iv");
+string ecb = AESHelper.Encrypt("hello world", "my-password", null, CipherMode.ECB);
+```
+
+### Decrypt(string, string, string, CipherMode)
+
+解密 Base64 密文为 UTF-8 明文。密钥规范化为 256 位，IV 规范化为 128 位（ECB 忽略 IV）。
+
+```csharp
+public static string Decrypt(string cipherBase64, string key, string iv, CipherMode mode = CipherMode.CBC)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `cipherBase64` | `string` | Base64 编码的密文 |
+| `key` | `string` | 密钥（任意长度，将规范化为 256 位） |
+| `iv` | `string` | 初始化向量（任意长度，将规范化为 128 位；ECB 模式忽略） |
+| `mode` | `CipherMode` | 加密模式，默认 `CipherMode.CBC` |
+
+**返回值：** UTF-8 明文字符串。
+
+**示例：**
+
+```csharp
+using System.Security.Cryptography;
+using Chet.Security;
+
+string cipher = AESHelper.Encrypt("hello world", "my-password", "my-iv");
+string plain = AESHelper.Decrypt(cipher, "my-password", "my-iv");
+```
+
+---
+
+## CBC/ECB 字节数组加解密
+
+### Encrypt(byte[], byte[], byte[], CipherMode)
+
+使用指定模式加密字节数组。仅支持 CBC 与 ECB，填充固定为 PKCS7。
+
+```csharp
+public static byte[] Encrypt(byte[] plain, byte[] key, byte[] iv, CipherMode mode = CipherMode.CBC)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `plain` | `byte[]` | 明文字节数组 |
+| `key` | `byte[]` | 密钥字节数组（16/24/32 字节） |
+| `iv` | `byte[]` | 初始化向量（16 字节；ECB 模式可传空） |
+| `mode` | `CipherMode` | 加密模式，默认 `CipherMode.CBC` |
+
+**返回值：** 密文字节数组。
+
+**示例：**
+
+```csharp
+using System.Security.Cryptography;
+using Chet.Security;
+
+byte[] key = Convert.FromBase64String(AESHelper.GenerateKey());
+byte[] iv = Convert.FromBase64String(AESHelper.GenerateIV());
+byte[] cipher = AESHelper.Encrypt(System.Text.Encoding.UTF8.GetBytes("hello"), key, iv);
+```
+
+### Decrypt(byte[], byte[], byte[], CipherMode)
+
+使用指定模式解密字节数组。仅支持 CBC 与 ECB，填充固定为 PKCS7。
+
+```csharp
+public static byte[] Decrypt(byte[] cipher, byte[] key, byte[] iv, CipherMode mode = CipherMode.CBC)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `cipher` | `byte[]` | 密文字节数组 |
+| `key` | `byte[]` | 密钥字节数组（16/24/32 字节） |
+| `iv` | `byte[]` | 初始化向量（16 字节；ECB 模式可传空） |
+| `mode` | `CipherMode` | 加密模式，默认 `CipherMode.CBC` |
+
+**返回值：** 明文字节数组。
+
+**示例：**
+
+```csharp
+using System.Security.Cryptography;
+using Chet.Security;
+
+byte[] key = Convert.FromBase64String(AESHelper.GenerateKey());
+byte[] iv = Convert.FromBase64String(AESHelper.GenerateIV());
+byte[] cipher = AESHelper.Encrypt(System.Text.Encoding.UTF8.GetBytes("hello"), key, iv);
+byte[] plain = AESHelper.Decrypt(cipher, key, iv);
+```
+
+---
+
+## AES-GCM 字符串加解密
+
+### EncryptGCM(string, string, string)
+
+使用 AES-GCM 加密 UTF-8 明文，返回 Base64 密文（密文 || 16 字节 Tag）。密钥规范化为 256 位，nonce 规范化为 96 位。
+
+```csharp
+public static string EncryptGCM(string plain, string key, string nonce)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `plain` | `string` | 明文字符串 |
+| `key` | `string` | 密钥（任意长度，将规范化为 256 位） |
+| `nonce` | `string` | 12 字节 nonce（任意长度，将规范化为 96 位） |
+
+**返回值：** Base64 编码的 `密文 || Tag`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string cipher = AESHelper.EncryptGCM("hello world", "my-password", "my-nonce");
+```
+
+### DecryptGCM(string, string, string)
+
+解密 AES-GCM 的 Base64 密文（密文 || 16 字节 Tag）为 UTF-8 明文。密钥规范化为 256 位，nonce 规范化为 96 位。
+
+```csharp
+public static string DecryptGCM(string cipherBase64, string key, string nonce)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `cipherBase64` | `string` | Base64 编码的 `密文 || Tag` |
+| `key` | `string` | 密钥（任意长度，将规范化为 256 位） |
+| `nonce` | `string` | 12 字节 nonce（任意长度，将规范化为 96 位） |
+
+**返回值：** UTF-8 明文字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string cipher = AESHelper.EncryptGCM("hello world", "my-password", "my-nonce");
+string plain = AESHelper.DecryptGCM(cipher, "my-password", "my-nonce");
+```
+
+---
+
+## AES-GCM 字节数组加解密
+
+### EncryptGCM(byte[], byte[], byte[])
+
+使用 AES-GCM 加密字节数组，返回 `密文 || 16 字节 Tag`。
+
+```csharp
+public static byte[] EncryptGCM(byte[] plain, byte[] key, byte[] nonce)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `plain` | `byte[]` | 明文字节数组 |
+| `key` | `byte[]` | 密钥字节数组（16/24/32 字节） |
+| `nonce` | `byte[]` | 12 字节 nonce |
+
+**返回值：** 密文与 16 字节 Tag 的拼接字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] key = Convert.FromBase64String(AESHelper.GenerateKey());
+byte[] nonce = Convert.FromBase64String(AESHelper.GenerateIV()[..20]); // 仅示意，nonce 应为 12 字节
+byte[] cipher = AESHelper.EncryptGCM(System.Text.Encoding.UTF8.GetBytes("hello"), key, nonce);
+```
+
+### DecryptGCM(byte[], byte[], byte[])
+
+解密 AES-GCM 密文（`密文 || 16 字节 Tag`）。Tag 校验失败时抛出 `CryptographicException`。
+
+```csharp
+public static byte[] DecryptGCM(byte[] cipher, byte[] key, byte[] nonce)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `cipher` | `byte[]` | 密文与 16 字节 Tag 的拼接字节数组 |
+| `key` | `byte[]` | 密钥字节数组（16/24/32 字节） |
+| `nonce` | `byte[]` | 12 字节 nonce |
+
+**返回值：** 明文字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] key = Convert.FromBase64String(AESHelper.GenerateKey());
+byte[] nonce = new byte[12]; // 实际场景应使用安全随机数
+byte[] cipher = AESHelper.EncryptGCM(System.Text.Encoding.UTF8.GetBytes("hello"), key, nonce);
+byte[] plain = AESHelper.DecryptGCM(cipher, key, nonce);
+```
+
+---
+
+## 工具方法
+
+### GenerateIV()
+
+生成 16 字节随机 IV，返回 Base64 字符串。
+
+```csharp
+public static string GenerateIV()
+```
+
+**返回值：** Base64 编码的 16 字节 IV。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string iv = AESHelper.GenerateIV();
+```
+
+### GenerateKey(int)
+
+生成指定长度的随机密钥，返回 Base64 字符串。
+
+```csharp
+public static string GenerateKey(int bitLength = 256)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `bitLength` | `int` | 密钥长度（位），默认 256，必须为 8 的正整数倍 |
+
+**返回值：** Base64 编码的密钥。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string key256 = AESHelper.GenerateKey();      // 256 位
+string key128 = AESHelper.GenerateKey(128);   // 128 位
+```

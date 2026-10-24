@@ -1,0 +1,282 @@
+---
+title: "SecurityService"
+description: "加密服务实现，按 CryptoAlgorithm 统一分发到各 *Helper 类，实现 ISecurityService 门面。"
+---
+
+import { Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# SecurityService 类
+
+## 概述
+
+[SecurityService](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/SecurityService.cs) 是 `ISecurityService` 接口的实现，通过统一构造参数（算法、密钥、辅助密钥、IV）按 `CryptoAlgorithm` 分发到 `Chet.Security` 命名空间下各 `*Helper` 静态类。上层只需面向 `ISecurityService` 编程，即可在 MD5/SHA/SM3 哈希、AES/DES/TripleDES/SM4 对称、RSA/SM2 非对称以及 Base64 编码之间无差别切换。构造参数语义随算法不同（详见下文「构造函数」表）。
+
+## 主要特性
+
+- 🚪 **统一门面** — 实现 `ISecurityService`，将哈希、对称、非对称、编码统一收敛到 `Encode` / `Decode` 两个入口
+- 🧭 **算法分发** — 通过 `CryptoAlgorithm` 枚举自动路由到对应 `*Helper`，无需手写 switch
+- 🔐 **对称加密** — 支持 AES（含 IV）、SM4（含 IV）、DES、TripleDES
+- 🧬 **国密算法** — 内置 SM2 / SM3 / SM4 国密算法支持
+- 🔑 **非对称密钥分离** — RSA / SM2 通过 `Key`（公钥）与 `Key2`（私钥）分别用于加密与解密
+- 🚫 **哈希不可逆保护** — MD5 / SHA-256 / SHA-512 / SM3 在调用 `Decode` 时抛出 `NotSupportedException`
+- 📦 **不可变实例** — 构造后 `Algorithm` / `Key` / `Key2` / `Iv` 为只读属性
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public class SecurityService : ISecurityService
+```
+
+---
+
+## ISecurityService 接口
+
+[ISecurityService](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/ISecurityService.cs) 是 `Chet.Security` 提供的统一加密服务门面接口，由 `SecurityService` 实现，按算法分发到各 `*Helper` 类。
+
+```csharp
+namespace Chet.Security;
+
+public interface ISecurityService
+{
+    CryptoAlgorithm Algorithm { get; }
+
+    string Encode(string content);
+
+    string Decode(string content);
+}
+```
+
+### Algorithm
+
+当前算法。
+
+```csharp
+CryptoAlgorithm Algorithm { get; }
+```
+
+**返回值：** `CryptoAlgorithm` 枚举值，标识当前服务实例所使用的算法。
+
+### Encode
+
+编码/加密：对明文进行单向哈希或可逆加密，返回字符串（哈希返回十六进制，加密返回 Base64）。
+
+```csharp
+string Encode(string content)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `content` | `string` | 明文字符串 |
+
+**返回值：** 哈希算法返回小写十六进制字符串；可逆加密算法返回 Base64 字符串；`Base64` 算法返回 Base64 字符串。
+
+### Decode
+
+解码/解密：将密文/编码还原为明文。单向哈希算法不支持解密，将抛出 `NotSupportedException`。
+
+```csharp
+string Decode(string content)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `content` | `string` | 密文或编码字符串 |
+
+**返回值：** 解码/解密后的 UTF-8 明文字符串。
+
+---
+
+## 类定义（实现）
+
+```csharp
+namespace Chet.Security;
+
+public class SecurityService : ISecurityService
+{
+    public CryptoAlgorithm Algorithm { get; }
+    public string Key { get; }
+    public string? Key2 { get; }
+    public string? Iv { get; }
+
+    public SecurityService(CryptoAlgorithm algorithm, string key, string? key2 = null, string? iv = null);
+    public string Encode(string content);
+    public string Decode(string content);
+}
+```
+
+---
+
+## 属性
+
+### Algorithm
+
+当前算法。
+
+```csharp
+public CryptoAlgorithm Algorithm { get; }
+```
+
+**返回值：** 构造时传入的 `CryptoAlgorithm` 值。
+
+### Key
+
+主密钥（对称密钥 / 公钥）。
+
+```csharp
+public string Key { get; }
+```
+
+**返回值：** 构造时传入的主密钥字符串；若传入 `null` 则为 `string.Empty`。
+
+### Key2
+
+辅助密钥（私钥），RSA / SM2 解密时必需。
+
+```csharp
+public string? Key2 { get; }
+```
+
+**返回值：** 构造时传入的辅助密钥字符串，可能为 `null`。
+
+### Iv
+
+初始化向量（对称加密的 IV），AES / SM4 必需。
+
+```csharp
+public string? Iv { get; }
+```
+
+**返回值：** 构造时传入的 IV 字符串，可能为 `null`。当 `Iv` 为 `null` 时，`AES` 与 `SM4` 内部回退使用 `Key` 作为 IV。
+
+---
+
+## 构造函数
+
+### SecurityService
+
+实例化加密服务。
+
+```csharp
+public SecurityService(CryptoAlgorithm algorithm, string key, string? key2 = null, string? iv = null)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `algorithm` | `CryptoAlgorithm` | 算法标识 |
+| `key` | `string` | 主密钥（对称密钥或公钥） |
+| `key2` | `string?` | 辅助密钥（私钥），RSA / SM2 解密时必需，默认 `null` |
+| `iv` | `string?` | 初始化向量，AES / SM4 必需，默认 `null` |
+
+**构造参数语义随算法不同：**
+
+| 算法 | `key` | `key2` | `iv` |
+| --- | --- | --- | --- |
+| `AES` / `SM4` | 对称密钥 | — | 向量（必需；为 `null` 时回退到 `key`） |
+| `DES` / `TripleDES` | 对称密钥 | — | — |
+| `RSA` / `SM2` | 公钥（用于加密） | 私钥（用于解密） | — |
+| `MD5` / `SHA256` / `SHA512` / `SM3` | 被忽略 | 被忽略 | 被忽略 |
+| `Base64` | 被忽略 | 被忽略 | 被忽略 |
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+// AES 对称加密
+var aes = new SecurityService(CryptoAlgorithm.AES, "my-key", iv: "my-iv");
+
+// RSA 非对称加密（公钥加密、私钥解密）
+var rsa = new SecurityService(CryptoAlgorithm.RSA, publicKey, privateKey);
+
+// MD5 单向哈希
+var md5 = new SecurityService(CryptoAlgorithm.MD5, key: string.Empty);
+```
+
+---
+
+## 编码/加密
+
+### Encode
+
+编码/加密。按 `Algorithm` 分发到对应 `*Helper`：哈希算法返回小写十六进制字符串，对称/非对称加密返回 Base64 字符串，`Base64` 算法返回 Base64 字符串。
+
+```csharp
+public string Encode(string content)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `content` | `string` | 明文字符串，不可为 `null` 或空 |
+
+**返回值：**
+
+| Algorithm | 返回内容 |
+| --- | --- |
+| `MD5` / `SHA256` / `SHA512` / `SM3` | 十六进制哈希字符串 |
+| `AES` / `DES` / `TripleDES` / `SM4` / `RSA` / `SM2` | Base64 密文字符串 |
+| `Base64` | Base64 编码字符串 |
+
+**异常：**
+
+- `content` 为 `null` 或空时通过 `CryptoPolyfill.ThrowIfNullOrEmpty` 抛出异常；
+- 算法未识别时抛出 `NotSupportedException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var aes = new SecurityService(CryptoAlgorithm.AES, "my-key", iv: "my-iv");
+string cipher = aes.Encode("hello world");
+
+var md5 = new SecurityService(CryptoAlgorithm.MD5, string.Empty);
+string hash = md5.Encode("hello world");
+```
+
+---
+
+## 解码/解密
+
+### Decode
+
+解码/解密。按 `Algorithm` 分发：单向哈希算法（MD5 / SHA256 / SHA512 / SM3）抛出 `NotSupportedException`，可逆算法返回 UTF-8 明文。
+
+```csharp
+public string Decode(string content)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `content` | `string` | 密文或编码字符串，不可为 `null` 或空 |
+
+**返回值：** 解密/解码后的 UTF-8 明文字符串。
+
+**异常：**
+
+- `content` 为 `null` 或空时通过 `CryptoPolyfill.ThrowIfNullOrEmpty` 抛出异常；
+- 算法为 MD5 / SHA256 / SHA512 / SM3 时抛出 `NotSupportedException`（单向哈希不支持解密）；
+- RSA / SM2 解密时若 `Key2` 为 `null` 抛出 `ArgumentException`；
+- 算法未识别时抛出 `NotSupportedException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+// AES 解密
+var aes = new SecurityService(CryptoAlgorithm.AES, "my-key", iv: "my-iv");
+string cipher = aes.Encode("hello world");
+string plain  = aes.Decode(cipher);  // "hello world"
+
+// RSA 解密（需要私钥）
+var rsa = new SecurityService(CryptoAlgorithm.RSA, publicKey, privateKey);
+string rsaCipher = rsa.Encode("hello");
+string rsaPlain  = rsa.Decode(rsaCipher);
+
+// Base64 解码
+var b64 = new SecurityService(CryptoAlgorithm.Base64, string.Empty);
+string encoded = b64.Encode("hello");
+string decoded = b64.Decode(encoded);  // "hello"
+```

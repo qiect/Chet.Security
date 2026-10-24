@@ -1,0 +1,198 @@
+---
+title: "Base64Helper"
+description: "Base64 编码/解码静态帮助类，提供字节与字符串之间的标准 Base64 转换，并支持 URL 安全码表。"
+---
+
+# Base64Helper 帮助类
+
+## 概述
+
+[Base64Helper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Encoding/Base64.cs) 是一个静态帮助类，提供字符串与字节之间的标准 Base64 转换，同时内置 URL 安全 Base64 码表，适用于需要在 URL、HTTP 头或 JSON 中传输二进制数据的场景。
+
+## 主要特性
+
+- 📦 **标准 Base64** — 基于 RFC 4648 标准码表，与 `Convert.ToBase64String` 行为一致
+- 🔗 **URL 安全** — 内置 URL 安全码表，将 `+` 替换为 `-`、`/` 替换为 `_`，并去除 `=` 填充
+- 🔄 **双向转换** — 支持字节数组与 Base64 字符串互转
+- 📝 **字符串直转** — 提供 UTF-8 字符串与 Base64 的直接互转方法
+- 🧩 **解码兼容** — `Decode` 同时兼容标准与 URL 安全两种格式，自动补齐填充
+- 📦 **静态类** — 全部为静态方法，无需实例化即可调用
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class Base64Helper
+```
+
+---
+
+## 常量
+
+### StandardAlphabet
+
+标准 Base64 码表。
+
+```csharp
+public const string StandardAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+```
+
+### UrlSafeAlphabet
+
+URL 安全 Base64 码表（将 `+` 替换为 `-`，`/` 替换为 `_`）。
+
+```csharp
+public const string UrlSafeAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+```
+
+---
+
+## 标准编码方法
+
+### Encode
+
+将字节数组编码为标准 Base64 字符串。
+
+```csharp
+public static string Encode(byte[] bytes)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| bytes | byte[] | 输入字节数组 |
+
+**返回值：** 标准 Base64 字符串（含 `=` 填充）。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] bytes = new byte[] { 0x48, 0x65, 0x6C, 0x6C, 0x6F };
+string b64 = Base64Helper.Encode(bytes);
+// b64 = "SGVsbG8="
+```
+
+### EncodeString
+
+将字符串按 UTF-8 编码后转为 Base64。
+
+```csharp
+public static string EncodeString(string text)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| text | string | 输入字符串 |
+
+**返回值：** 标准 Base64 字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string b64 = Base64Helper.EncodeString("hello");
+// b64 = "aGVsbG8="
+```
+
+### Decode
+
+将 Base64 字符串（兼容标准与 URL 安全格式）解码为字节数组。
+
+```csharp
+public static byte[] Decode(string base64)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| base64 | string | Base64 字符串，支持标准与 URL 安全格式 |
+
+**返回值：** 解码后的字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] bytes = Base64Helper.Decode("aGVsbG8=");
+// bytes = { 0x68, 0x65, 0x6C, 0x6C, 0x6F }
+
+// 同样支持 URL 安全格式（无填充）
+byte[] urlSafeBytes = Base64Helper.Decode("aGVsbG8");
+```
+
+### DecodeToString
+
+将 Base64 字符串解码为 UTF-8 字符串。
+
+```csharp
+public static string DecodeToString(string base64)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| base64 | string | Base64 字符串，支持标准与 URL 安全格式 |
+
+**返回值：** 解码后的 UTF-8 字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string text = Base64Helper.DecodeToString("aGVsbG8=");
+// text = "hello"
+```
+
+---
+
+## URL 安全编码方法
+
+### EncodeUrlSafe
+
+将字节数组编码为 URL 安全 Base64（去除填充 `=`）。
+
+```csharp
+public static string EncodeUrlSafe(byte[] bytes)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| bytes | byte[] | 输入字节数组 |
+
+**返回值：** URL 安全 Base64 字符串，将 `+` 替换为 `-`、`/` 替换为 `_`，并去除尾部 `=` 填充。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] bytes = new byte[] { 0xFB, 0xFF, 0xBF };
+string urlSafe = Base64Helper.EncodeUrlSafe(bytes);
+// urlSafe = "--_7"（无填充，可直接用于 URL 路径或查询参数）
+```
+
+### EncodeStringUrlSafe
+
+将字符串编码为 URL 安全 Base64。
+
+```csharp
+public static string EncodeStringUrlSafe(string text)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| text | string | 输入字符串 |
+
+**返回值：** URL 安全 Base64 字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string token = Base64Helper.EncodeStringUrlSafe("user:secret");
+// 适用于 JWT、URL 携带的 token 等场景
+```

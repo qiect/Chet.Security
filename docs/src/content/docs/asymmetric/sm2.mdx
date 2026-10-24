@@ -1,0 +1,170 @@
+---
+title: "SM2Helper"
+description: "国密 SM2 非对称加密与签名工具类，曲线 sm2p256v1，加密模式 C1C3C2，基于 BouncyCastle 实现。"
+---
+
+# SM2Helper 帮助类
+
+## 概述
+
+[SM2Helper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Asymmetric/SM2.cs) 是一个静态帮助类，封装了国密 SM2 非对称加密与签名算法，底层基于 BouncyCastle 的 `sm2p256v1` 曲线实现。加密使用 C1C3C2 模式；签名使用 `SM2Signer`，默认用户 ID 为 `"1234567812345678"`。密钥形式为 Base64 字符串：公钥为未压缩点编码（65 字节，含 `0x04` 前缀），私钥为 32 字节标量。
+
+## 主要特性
+
+- 🇨🇳 **国密合规**：基于 GM/T 0003 标准的 `sm2p256v1` 曲线，适用于国密场景。
+- 🔑 **密钥生成**：通过 BouncyCastle `ECKeyPairGenerator` 生成密钥对，输出 Base64 形式（公钥 65 字节未压缩点、私钥 32 字节标量）。
+- 🔒 **C1C3C2 加密**：使用 `SM2Engine.Mode.C1C3C2` 模式加密，符合新国标排序。
+- ✍️ **SM2 签名**：通过 `SM2Signer` + `ParametersWithID` 完成签名验签，默认用户 ID `"1234567812345678"`。
+- 🧪 **UTF-8 文本**：明文与待签名数据统一按 UTF-8 编码，密文与签名以 Base64 输出。
+- 🌐 **统一命名空间**：所有帮助类位于 `Chet.Security` 命名空间下，跨平台目标（`netstandard2.1` / `net8.0`）行为一致。
+
+## 类定义
+
+```csharp
+using Chet.Security;
+
+/// <summary>SM2 国密非对称加密与签名工具类（曲线 sm2p256v1，加密模式 C1C3C2，默认用户 ID "1234567812345678"）。</summary>
+public static class SM2Helper
+```
+
+---
+
+## 密钥生成
+
+### GenerateKeyPair
+
+生成 SM2 密钥对，公钥为未压缩点编码（65 字节，含 0x04 前缀）的 Base64，私钥为 32 字节标量的 Base64。
+
+```csharp
+public static (string PublicKeyBase64, string PrivateKeyBase64) GenerateKeyPair()
+```
+
+**返回值：** 公钥与私钥的 Base64 字符串元组 `(PublicKeyBase64, PrivateKeyBase64)`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicKeyBase64, privateKeyBase64) = SM2Helper.GenerateKeyPair();
+
+Console.WriteLine(publicKeyBase64);  // 形如 BIDA...（65 字节未压缩点的 Base64）
+Console.WriteLine(privateKeyBase64);  // 形如 abc...（32 字节标量的 Base64）
+```
+
+## 加密与解密
+
+### Encrypt
+
+使用公钥加密明文，返回 Base64 密文（SM2 模式 C1C3C2）。
+
+```csharp
+public static string Encrypt(string plain, string publicKeyBase64)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| plain | string | 待加密明文。 |
+| publicKeyBase64 | string | 公钥 Base64（未压缩点，65 字节）。 |
+
+**返回值：** Base64 密文。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicKeyBase64, _) = SM2Helper.GenerateKeyPair();
+string cipher = SM2Helper.Encrypt("hello sm2", publicKeyBase64);
+Console.WriteLine(cipher);
+```
+
+### Decrypt
+
+使用私钥解密 Base64 密文，返回明文（SM2 模式 C1C3C2）。
+
+```csharp
+public static string Decrypt(string cipherBase64, string privateKeyBase64)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| cipherBase64 | string | Base64 密文。 |
+| privateKeyBase64 | string | 私钥 Base64（32 字节标量）。 |
+
+**返回值：** 明文字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicKeyBase64, privateKeyBase64) = SM2Helper.GenerateKeyPair();
+string cipher = SM2Helper.Encrypt("hello sm2", publicKeyBase64);
+string plain  = SM2Helper.Decrypt(cipher, privateKeyBase64);
+Console.WriteLine(plain); // hello sm2
+```
+
+## 签名与验签
+
+### Sign
+
+使用私钥对数据签名，返回 Base64 签名（SM2，默认用户 ID `"1234567812345678"`）。
+
+```csharp
+public static string Sign(string data, string privateKeyBase64, string userId = "1234567812345678")
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| data | string | 待签名数据（UTF-8）。 |
+| privateKeyBase64 | string | 私钥 Base64。 |
+| userId | string | 用户 ID，默认 `"1234567812345678"`。 |
+
+**返回值：** Base64 签名。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (_, privateKeyBase64) = SM2Helper.GenerateKeyPair();
+string sig = SM2Helper.Sign("payload to sign", privateKeyBase64);
+Console.WriteLine(sig);
+
+// 自定义用户 ID（需与验签端一致）
+string sig2 = SM2Helper.Sign("payload to sign", privateKeyBase64, "my-user-id");
+```
+
+### Verify
+
+使用公钥验证签名（默认用户 ID `"1234567812345678"`）。
+
+```csharp
+public static bool Verify(string data, string signatureBase64, string publicKeyBase64, string userId = "1234567812345678")
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| data | string | 原始数据。 |
+| signatureBase64 | string | Base64 签名。 |
+| publicKeyBase64 | string | 公钥 Base64。 |
+| userId | string | 用户 ID，默认 `"1234567812345678"`。 |
+
+**返回值：** 签名是否通过验证。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicKeyBase64, privateKeyBase64) = SM2Helper.GenerateKeyPair();
+string sig = SM2Helper.Sign("payload to sign", privateKeyBase64);
+bool ok = SM2Helper.Verify("payload to sign", sig, publicKeyBase64);
+Console.WriteLine(ok); // True
+
+// 自定义用户 ID 时，签名与验签须使用同一 ID
+string sig2 = SM2Helper.Sign("payload to sign", privateKeyBase64, "my-user-id");
+bool ok2 = SM2Helper.Verify("payload to sign", sig2, publicKeyBase64, "my-user-id");
+Console.WriteLine(ok2); // True
+```

@@ -1,0 +1,378 @@
+---
+title: "RSAHelper"
+description: "RSA 非对称加密工具类，提供 PEM/PKCS#8 密钥生成、OAEP-SHA256 加解密、PSS-SHA256 签名验签与长文本分段加解密。"
+---
+
+# RSAHelper 帮助类
+
+## 概述
+
+[RSAHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Asymmetric/RSA.cs) 是一个静态帮助类，封装了 RSA 非对称加密的常见操作：基于 BouncyCastle 生成密钥对并以 PEM（公钥 SubjectPublicKeyInfo / 私钥 PKCS#8 PrivateKeyInfo）格式返回，加解密统一采用 OAEP-SHA256 填充，签名验签统一采用 PSS-SHA256 填充，并针对超长明文提供分段加解密能力。
+
+## 主要特性
+
+- 🔑 **密钥生成**：通过 BouncyCastle `RsaKeyPairGenerator` 生成 512~16384 位的密钥对，输出标准 PEM 文本。
+- 🔒 **OAEP-SHA256 加密**：使用 `RSAEncryptionPadding.OaepSHA256` 填充方案，安全性高于 PKCS#1 v1.5。
+- ✍️ **PSS-SHA256 签名**：签名与验签采用 `RSASignaturePadding.Pss`，并支持自定义哈希算法名。
+- 📦 **多形态密钥输入**：同时支持 PEM 字符串、DER 字节、DER Base64 字符串三种密钥形式。
+- 📏 **长文本分段加解密**：`EncryptLong` / `DecryptLong` 自动按密钥容量拆分明文，密文以 `|||` 连接多段 Base64。
+- 🧪 **多目标兼容**：底层基于 .NET BCL `RSA` 实现，配合 `CryptoPolyfill` 在 `netstandard2.1` 与 `net8.0` 下行为一致。
+- 🌐 **PEM 标准格式**：公钥 `PUBLIC KEY`、私钥 `PRIVATE KEY`，64 字符分行，符合 RFC 7468。
+
+## 类定义
+
+```csharp
+using Chet.Security;
+
+/// <summary>RSA 非对称加密工具类：PEM（SubjectPublicKeyInfo 公钥 / PKCS#8 PrivateKeyInfo 私钥）密钥格式，OAEP-SHA256 加密、PSS-SHA256 签名，并支持长文本分段加解密。</summary>
+public static class RSAHelper
+```
+
+---
+
+## 密钥生成
+
+### GenerateKeyPair
+
+生成 RSA 密钥对并返回 PEM 字符串（公钥为 SubjectPublicKeyInfo，私钥为 PKCS#8 PrivateKeyInfo）。
+
+```csharp
+public static (string PublicKeyPem, string PrivateKeyPem) GenerateKeyPair(int keySize = 2048)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| keySize | int | 密钥位数，默认 2048（须为 512~16384 之间 8 的倍数）。 |
+
+**返回值：** 公钥与私钥的 PEM 字符串元组 `(PublicKeyPem, PrivateKeyPem)`；`keySize` 不合法时抛出 `ArgumentOutOfRangeException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, privatePem) = RSAHelper.GenerateKeyPair(2048);
+
+Console.WriteLine(publicPem);
+// -----BEGIN PUBLIC KEY-----
+// MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
+// -----END PUBLIC KEY-----
+
+Console.WriteLine(privatePem);
+// -----BEGIN PRIVATE KEY-----
+// MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC...
+// -----END PRIVATE KEY-----
+```
+
+## 加密与解密
+
+### Encrypt(string, string)
+
+使用公钥 PEM 加密明文，返回 Base64 密文（OAEP-SHA256 填充）。
+
+```csharp
+public static string Encrypt(string plain, string publicKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| plain | string | 待加密明文。 |
+| publicKeyPem | string | SubjectPublicKeyInfo 格式的公钥 PEM。 |
+
+**返回值：** Base64 密文；失败抛出 `CryptographicException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, _) = RSAHelper.GenerateKeyPair();
+string cipher = RSAHelper.Encrypt("hello world", publicPem);
+Console.WriteLine(cipher); // Base64 字符串
+```
+
+### Decrypt(string, string)
+
+使用私钥 PEM 解密 Base64 密文，返回明文（OAEP-SHA256）。
+
+```csharp
+public static string Decrypt(string cipherBase64, string privateKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| cipherBase64 | string | Base64 编码的密文。 |
+| privateKeyPem | string | PKCS#8 PrivateKeyInfo 格式的私钥 PEM。 |
+
+**返回值：** 明文字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, privatePem) = RSAHelper.GenerateKeyPair();
+string cipher = RSAHelper.Encrypt("hello world", publicPem);
+string plain  = RSAHelper.Decrypt(cipher, privatePem);
+Console.WriteLine(plain); // hello world
+```
+
+### EncryptWithDerBase64
+
+使用 SubjectPublicKeyInfo 的 Base64 形式公钥加密，返回 Base64 密文。
+
+```csharp
+public static string EncryptWithDerBase64(string plain, string publicKeyDerBase64)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| plain | string | 待加密明文。 |
+| publicKeyDerBase64 | string | 公钥 DER 的 Base64 字符串。 |
+
+**返回值：** Base64 密文。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+using System;
+
+var (publicPem, _) = RSAHelper.GenerateKeyPair();
+// 从 PEM 提取 Base64（去掉 BEGIN/END 与换行），实际使用时常由配置中心下发
+string pubDerBase64 = Convert.ToBase64String(
+    Convert.FromBase64String(publicPem
+        .Replace("-----BEGIN PUBLIC KEY-----", "")
+        .Replace("-----END PUBLIC KEY-----", "")
+        .Replace("\n", "").Replace("\r", "").Trim()));
+
+string cipher = RSAHelper.EncryptWithDerBase64("hello", pubDerBase64);
+```
+
+### Encrypt(byte[], byte[])
+
+使用公钥 DER（SubjectPublicKeyInfo）加密原始字节，返回密文字节（OAEP-SHA256）。
+
+```csharp
+public static byte[] Encrypt(byte[] plain, byte[] publicKeyDer)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| plain | byte[] | 待加密明文字节。 |
+| publicKeyDer | byte[] | SubjectPublicKeyInfo 公钥 DER。 |
+
+**返回值：** 密文字节数组；参数为 null 时抛出 `ArgumentNullException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+using System.Text;
+
+var (publicPem, _) = RSAHelper.GenerateKeyPair();
+byte[] pubDer = Convert.FromBase64String(
+    publicPem.Replace("-----BEGIN PUBLIC KEY-----", "")
+             .Replace("-----END PUBLIC KEY-----", "")
+             .Replace("\n", "").Replace("\r", "").Trim());
+
+byte[] cipher = RSAHelper.Encrypt(Encoding.UTF8.GetBytes("raw bytes"), pubDer);
+```
+
+### Decrypt(byte[], byte[])
+
+使用私钥 DER（PKCS#8 PrivateKeyInfo）解密密文字节，返回明文字节（OAEP-SHA256）。
+
+```csharp
+public static byte[] Decrypt(byte[] cipher, byte[] privateKeyDer)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| cipher | byte[] | 密文字节。 |
+| privateKeyDer | byte[] | PKCS#8 私钥 DER。 |
+
+**返回值：** 明文字节数组；参数为 null 时抛出 `ArgumentNullException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+using System.Text;
+
+var (publicPem, privatePem) = RSAHelper.GenerateKeyPair();
+byte[] pubDer   = /* 由 PEM 解析得到 */ Array.Empty<byte>();
+byte[] privDer  = /* 由 PEM 解析得到 */ Array.Empty<byte>();
+
+byte[] cipher = RSAHelper.Encrypt(Encoding.UTF8.GetBytes("raw bytes"), pubDer);
+byte[] plain  = RSAHelper.Decrypt(cipher, privDer);
+Console.WriteLine(Encoding.UTF8.GetString(plain));
+```
+
+## 长文本分段加解密
+
+### EncryptLong
+
+对超长明文进行分段 RSA-OAEP-SHA256 加密，多个密文块以 `|||` 连接，每段单独 Base64。
+
+```csharp
+public static string EncryptLong(string plain, string publicKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| plain | string | 待加密明文（任意长度）。 |
+| publicKeyPem | string | 公钥 PEM。 |
+
+**返回值：** 形如 `base64_1|||base64_2|||...` 的分段密文；密钥位数过小（OAEP 单块明文 ≤ 0）时抛出 `CryptographicException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, _) = RSAHelper.GenerateKeyPair(2048);
+string longText = new string('A', 5000); // 超过单块上限
+string cipher = RSAHelper.EncryptLong(longText, publicPem);
+// 形如：xxxxx==|||yyyyy==|||zzzzz==
+```
+
+### DecryptLong
+
+解密 `EncryptLong` 输出的分段密文，返回完整明文。
+
+```csharp
+public static string DecryptLong(string cipherBase64, string privateKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| cipherBase64 | string | 由 `EncryptLong` 产生的密文（多段以 `|||` 连接的 Base64）。 |
+| privateKeyPem | string | 私钥 PEM。 |
+
+**返回值：** 完整明文字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, privatePem) = RSAHelper.GenerateKeyPair(2048);
+string longText = new string('A', 5000);
+string cipher = RSAHelper.EncryptLong(longText, publicPem);
+string plain  = RSAHelper.DecryptLong(cipher, privatePem);
+Console.WriteLine(plain.Length); // 5000
+```
+
+## 签名与验签
+
+### SignData(string, string, string)
+
+使用私钥 PEM 对数据签名，返回 Base64 签名（PSS-SHA256）。
+
+```csharp
+public static string SignData(string data, string privateKeyPem, string hashAlgorithmName = "SHA256")
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| data | string | 待签名数据（UTF-8）。 |
+| privateKeyPem | string | PKCS#8 私钥 PEM。 |
+| hashAlgorithmName | string | 哈希算法名，默认 `SHA256`。 |
+
+**返回值：** Base64 签名。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (_, privatePem) = RSAHelper.GenerateKeyPair();
+string sig = RSAHelper.SignData("payload to sign", privatePem);
+Console.WriteLine(sig);
+```
+
+### VerifyData(string, string, string, string)
+
+使用公钥 PEM 验证签名。
+
+```csharp
+public static bool VerifyData(string data, string signatureBase64, string publicKeyPem, string hashAlgorithmName = "SHA256")
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| data | string | 原始数据。 |
+| signatureBase64 | string | Base64 签名。 |
+| publicKeyPem | string | 公钥 PEM。 |
+| hashAlgorithmName | string | 哈希算法名，默认 `SHA256`。 |
+
+**返回值：** 签名是否通过验证。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, privatePem) = RSAHelper.GenerateKeyPair();
+string sig = RSAHelper.SignData("payload to sign", privatePem);
+bool ok = RSAHelper.VerifyData("payload to sign", sig, publicPem);
+Console.WriteLine(ok); // True
+```
+
+### SignData(byte[], byte[], string)
+
+使用私钥 DER 对字节数据签名，返回签名字节（PSS）。
+
+```csharp
+public static byte[] SignData(byte[] data, byte[] privateKeyDer, string hashAlgorithmName = "SHA256")
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| data | byte[] | 待签名数据。 |
+| privateKeyDer | byte[] | PKCS#8 私钥 DER。 |
+| hashAlgorithmName | string | 哈希算法名，默认 `SHA256`。 |
+
+**返回值：** 签名字节数组；参数为 null 时抛出 `ArgumentNullException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+using System.Text;
+
+byte[] privDer = /* PKCS#8 DER */ Array.Empty<byte>();
+byte[] sig = RSAHelper.SignData(Encoding.UTF8.GetBytes("payload"), privDer, "SHA384");
+```
+
+### VerifyData(byte[], byte[], byte[], string)
+
+使用公钥 DER 验证签名。
+
+```csharp
+public static bool VerifyData(byte[] data, byte[] signature, byte[] publicKeyDer, string hashAlgorithmName = "SHA256")
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| data | byte[] | 原始数据。 |
+| signature | byte[] | 签名字节。 |
+| publicKeyDer | byte[] | SubjectPublicKeyInfo 公钥 DER。 |
+| hashAlgorithmName | string | 哈希算法名，默认 `SHA256`。 |
+
+**返回值：** 签名是否通过验证；参数为 null 时抛出 `ArgumentNullException`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+using System.Text;
+
+byte[] pubDer  = /* SubjectPublicKeyInfo DER */ Array.Empty<byte>();
+byte[] privDer = /* PKCS#8 DER */ Array.Empty<byte>();
+byte[] data    = Encoding.UTF8.GetBytes("payload");
+byte[] sig     = RSAHelper.SignData(data, privDer, "SHA384");
+bool ok        = RSAHelper.VerifyData(data, sig, pubDer, "SHA384");
+Console.WriteLine(ok); // True
+```

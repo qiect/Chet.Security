@@ -1,0 +1,147 @@
+---
+title: "Argon2Helper"
+description: "基于 BouncyCastle 的 Argon2id 密钥派生静态帮助类，提供 GPU/ASIC 抗性。"
+---
+
+# Argon2Helper 帮助类
+
+## 概述
+
+[Argon2Helper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/KeyDerivation/Argon2.cs) 是一个静态帮助类，基于 BouncyCastle 的 `Argon2BytesGenerator` 实现 Argon2id 密钥派生算法，适用于密码哈希等需要 GPU/ASIC 抗性的场景。该类支持字节数组、Base64 与小写十六进制字符串输出，并提供迭代次数、内存开销与并行参数的完整配置。
+
+## 主要特性
+
+- 🛡️ **Argon2id** — 同时具备内存困难与数据依赖特性，是密码哈希竞赛推荐版本
+- ⚙️ **完整参数可调** — 迭代次数、内存开销（KB）、并行参数均可配置
+- 📦 **多种输出格式** — 支持字节数组、Base64 字符串、小写十六进制字符串
+- 🧠 **内存困难型** — 通过内存开销参数抵御 GPU/ASIC 并行攻击
+- 🧂 **外部盐值** — 由调用方提供盐值，便于与存储系统对接
+- 🔗 **BouncyCastle 实现** — 基于 `Org.BouncyCastle.Crypto.Generators.Argon2BytesGenerator`
+
+## 类定义
+
+```csharp
+public static class Argon2Helper
+{
+    public const int DefaultIterations = 3;
+    public const int DefaultMemoryKb = 65536;
+    public const int DefaultParallelism = 1;
+    public const int DefaultDerivedLength = 32;
+}
+```
+
+---
+
+## 密钥派生
+
+### DeriveBytes（字节数组输入）
+
+使用 Argon2id 从密码派生指定长度的字节数组。
+
+```csharp
+public static byte[] DeriveBytes(byte[] password, byte[] salt, int iterations = DefaultIterations, int memoryKb = DefaultMemoryKb, int parallelism = DefaultParallelism, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| password | byte[] | 密码字节数组。 |
+| salt | byte[] | 盐值字节数组。 |
+| iterations | int | 迭代次数，默认 3。 |
+| memoryKb | int | 内存开销（KB），默认 65536。 |
+| parallelism | int | 并行参数，默认 1。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生出的密钥字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] pwd = System.Text.Encoding.UTF8.GetBytes("password");
+byte[] salt = System.Text.Encoding.UTF8.GetBytes("salt");
+byte[] key = Argon2Helper.DeriveBytes(pwd, salt);
+```
+
+### DeriveBytes（字符串输入）
+
+使用 Argon2id 从密码派生指定长度的字节数组，密码与盐均为 UTF-8 字符串。
+
+```csharp
+public static byte[] DeriveBytes(string password, string salt, int iterations = DefaultIterations, int memoryKb = DefaultMemoryKb, int parallelism = DefaultParallelism, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| password | string | 密码字符串（按 UTF-8 编码）。 |
+| salt | string | 盐值字符串（按 UTF-8 编码）。 |
+| iterations | int | 迭代次数，默认 3。 |
+| memoryKb | int | 内存开销（KB），默认 65536。 |
+| parallelism | int | 并行参数，默认 1。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生出的密钥字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] key = Argon2Helper.DeriveBytes("password", "salt");
+```
+
+## 编码输出
+
+### DeriveBase64
+
+使用 Argon2id 派生并以 Base64 字符串返回。
+
+```csharp
+public static string DeriveBase64(string password, string salt, int iterations = DefaultIterations, int memoryKb = DefaultMemoryKb, int parallelism = DefaultParallelism, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| password | string | 密码字符串（按 UTF-8 编码）。 |
+| salt | string | 盐值字符串（按 UTF-8 编码）。 |
+| iterations | int | 迭代次数，默认 3。 |
+| memoryKb | int | 内存开销（KB），默认 65536。 |
+| parallelism | int | 并行参数，默认 1。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生密钥的 Base64 字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string base64 = Argon2Helper.DeriveBase64("password", "salt");
+```
+
+### DeriveHex
+
+使用 Argon2id 派生并以小写十六进制字符串返回。
+
+```csharp
+public static string DeriveHex(string password, string salt, int iterations = DefaultIterations, int memoryKb = DefaultMemoryKb, int parallelism = DefaultParallelism, int derivedLength = DefaultDerivedLength)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| password | string | 密码字符串（按 UTF-8 编码）。 |
+| salt | string | 盐值字符串（按 UTF-8 编码）。 |
+| iterations | int | 迭代次数，默认 3。 |
+| memoryKb | int | 内存开销（KB），默认 65536。 |
+| parallelism | int | 并行参数，默认 1。 |
+| derivedLength | int | 派生长度（字节），默认 32。 |
+
+**返回值：** 派生密钥的小写十六进制字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string hex = Argon2Helper.DeriveHex("password", "salt");
+```

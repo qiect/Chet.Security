@@ -1,0 +1,181 @@
+---
+title: "ChaCha20Poly1305Helper"
+description: "ChaCha20-Poly1305 AEAD 认证加密工具类，输出密文 || 16 字节 Tag。"
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+# ChaCha20Poly1305Helper 帮助类
+
+## 概述
+
+[ChaCha20Poly1305Helper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Symmetric/ChaCha20Poly1305.cs) 是一个静态帮助类，封装了 ChaCha20-Poly1305 AEAD 认证加密的常用操作。`net8.0` 下使用 BCL `ChaCha20Poly1305`，`netstandard2.1` 下回退至 BouncyCastle 实现。输出格式为 `密文 || 16 字节 Tag`，解密时取末尾 16 字节作为 Tag 进行校验。
+
+## 主要特性
+
+- 🏷️ **AEAD 认证加密** — 同时保证机密性与完整性，Tag 校验失败抛出 `CryptographicException`
+- 📦 **统一输出格式** — `密文 || 16 字节 Tag` 拼接返回，便于传输与存储
+- 🔑 **密钥规范化** — 字符串重载自动将密钥规范化为 256 位、nonce 为 96 位
+- 📋 **双双重载** — 提供 `string` 与 `byte[]` 两套重载
+- 🔄 **跨平台一致** — 多目标 `netstandard2.1` + `net8.0`，polyfill 统一行为
+- 🎲 **密钥与 nonce 生成** — 内置 `GenerateKey` / `GenerateNonce` 工具方法
+
+## 类定义
+
+```csharp
+namespace Chet.Security;
+
+public static class ChaCha20Poly1305Helper
+```
+
+---
+
+## 字符串加解密
+
+### Encrypt(string, string, string)
+
+加密 UTF-8 明文，返回 Base64 密文（`密文 || 16 字节 Tag`）。密钥规范化为 256 位，nonce 规范化为 96 位。
+
+```csharp
+public static string Encrypt(string plain, string key, string nonce)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `plain` | `string` | 明文字符串 |
+| `key` | `string` | 密钥（任意长度，将规范化为 256 位） |
+| `nonce` | `string` | 12 字节 nonce（任意长度，将规范化为 96 位） |
+
+**返回值：** Base64 编码的 `密文 || Tag`。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string cipher = ChaCha20Poly1305Helper.Encrypt("hello world", "my-password", "my-nonce");
+```
+
+### Decrypt(string, string, string)
+
+解密 Base64 密文（`密文 || 16 字节 Tag`）为 UTF-8 明文。密钥规范化为 256 位，nonce 规范化为 96 位。
+
+```csharp
+public static string Decrypt(string cipherBase64, string key, string nonce)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `cipherBase64` | `string` | Base64 编码的 `密文 || Tag` |
+| `key` | `string` | 密钥（任意长度，将规范化为 256 位） |
+| `nonce` | `string` | 12 字节 nonce（任意长度，将规范化为 96 位） |
+
+**返回值：** UTF-8 明文字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string cipher = ChaCha20Poly1305Helper.Encrypt("hello world", "my-password", "my-nonce");
+string plain = ChaCha20Poly1305Helper.Decrypt(cipher, "my-password", "my-nonce");
+```
+
+---
+
+## 字节数组加解密
+
+### Encrypt(byte[], byte[], byte[])
+
+加密字节数组，返回 `密文 || 16 字节 Tag`。
+
+```csharp
+public static byte[] Encrypt(byte[] plain, byte[] key, byte[] nonce)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `plain` | `byte[]` | 明文字节数组 |
+| `key` | `byte[]` | 32 字节密钥 |
+| `nonce` | `byte[]` | 12 字节 nonce |
+
+**返回值：** 密文与 16 字节 Tag 的拼接字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] key = Convert.FromBase64String(ChaCha20Poly1305Helper.GenerateKey());
+byte[] nonce = Convert.FromBase64String(ChaCha20Poly1305Helper.GenerateNonce());
+byte[] cipher = ChaCha20Poly1305Helper.Encrypt(
+    System.Text.Encoding.UTF8.GetBytes("hello"), key, nonce);
+```
+
+### Decrypt(byte[], byte[], byte[])
+
+解密密文（`密文 || 16 字节 Tag`）。Tag 校验失败时抛出 `CryptographicException`。
+
+```csharp
+public static byte[] Decrypt(byte[] cipher, byte[] key, byte[] nonce)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| `cipher` | `byte[]` | 密文与 16 字节 Tag 的拼接字节数组 |
+| `key` | `byte[]` | 32 字节密钥 |
+| `nonce` | `byte[]` | 12 字节 nonce |
+
+**返回值：** 明文字节数组。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+byte[] key = Convert.FromBase64String(ChaCha20Poly1305Helper.GenerateKey());
+byte[] nonce = Convert.FromBase64String(ChaCha20Poly1305Helper.GenerateNonce());
+byte[] cipher = ChaCha20Poly1305Helper.Encrypt(
+    System.Text.Encoding.UTF8.GetBytes("hello"), key, nonce);
+byte[] plain = ChaCha20Poly1305Helper.Decrypt(cipher, key, nonce);
+```
+
+---
+
+## 工具方法
+
+### GenerateNonce()
+
+生成 12 字节随机 nonce，返回 Base64 字符串。
+
+```csharp
+public static string GenerateNonce()
+```
+
+**返回值：** Base64 编码的 12 字节 nonce。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string nonce = ChaCha20Poly1305Helper.GenerateNonce();
+```
+
+### GenerateKey()
+
+生成 32 字节随机密钥，返回 Base64 字符串。
+
+```csharp
+public static string GenerateKey()
+```
+
+**返回值：** Base64 编码的 32 字节密钥。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+string key = ChaCha20Poly1305Helper.GenerateKey();
+```
