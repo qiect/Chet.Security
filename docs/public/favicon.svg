@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Background: near-black with subtle vertical depth -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#0c0c0c"/>
+      <stop offset="100%" stop-color="#080808"/>
+    </linearGradient>
+    <!-- Signature pink gradient (brand color) -->
+    <linearGradient id="pinkGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff78ac"/>
+      <stop offset="50%" stop-color="#e8105a"/>
+      <stop offset="100%" stop-color="#bd0249"/>
+    </linearGradient>
+    <!-- Radial ambient glow -->
+    <radialGradient id="ambient" cx="0.5" cy="0.42" r="0.55">
+      <stop offset="0%" stop-color="#e8105a" stop-opacity="0.22"/>
+      <stop offset="55%" stop-color="#bd0249" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#bd0249" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Border gradient -->
+    <linearGradient id="borderGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff78ac" stop-opacity="0.35"/>
+      <stop offset="50%" stop-color="#bd0249" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#ff78ac" stop-opacity="0.28"/>
+    </linearGradient>
+    <!-- Inner shield dark fill -->
+    <linearGradient id="shieldFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a0a12" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#0c0c0c" stop-opacity="0.75"/>
+    </linearGradient>
+    <!-- Hexagon face fill -->
+    <linearGradient id="hexFace" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff78ac" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#bd0249" stop-opacity="0.22"/>
+    </linearGradient>
+    <!-- Outer shield glow -->
+    <filter id="shieldGlow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 0.15 0 0 0  0 0.25 0 0  0 0 0 0.7 0" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Bright keyhole glow -->
+    <filter id="keyGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4"/>
+    </filter>
+    <!-- Orbital ring rotation animation would go here for HTML; SVG static -->
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  <rect width="512" height="512" rx="112" fill="url(#ambient)"/>
+  <!-- Outer border -->
+  <rect x="1.5" y="1.5" width="509" height="509" rx="110.5" fill="none" stroke="url(#borderGrad)" stroke-width="1.5"/>
+  <!-- Inner frame line -->
+  <rect x="26" y="26" width="460" height="460" rx="90" fill="none" stroke="#e8105a" stroke-width="0.6" opacity="0.14"/>
+
+  <!-- Decorative hex grid (4 corners, cryptographic motif) -->
+  <g opacity="0.1" stroke="#ff78ac" stroke-width="1" fill="none">
+    <path d="M56 88 L88 70 L120 88 L120 124 L88 142 L56 124 Z"/>
+    <path d="M392 88 L424 70 L456 88 L456 124 L424 142 L392 124 Z"/>
+    <path d="M56 388 L88 370 L120 388 L120 424 L88 442 L56 424 Z"/>
+    <path d="M392 388 L424 370 L456 388 L456 424 L424 442 L392 424 Z"/>
+  </g>
+
+  <!-- Circuit traces with nodes (radiating from shield) -->
+  <g stroke="#ff78ac" stroke-width="1.2" fill="none" opacity="0.32">
+    <path d="M40 256 H92"/>
+    <path d="M420 256 H472"/>
+    <path d="M256 40 V92"/>
+    <path d="M256 420 V472"/>
+  </g>
+  <g fill="#ff78ac" opacity="0.55">
+    <circle cx="92" cy="256" r="3"/>
+    <circle cx="420" cy="256" r="3"/>
+    <circle cx="256" cy="92" r="3"/>
+    <circle cx="256" cy="420" r="3"/>
+  </g>
+
+  <!-- Shield outline (main brand form) -->
+  <path d="M256 86 L410 140 V270 C410 360 340 412 256 450 C172 412 102 360 102 270 V140 Z"
+        fill="url(#shieldFill)"
+        stroke="url(#pinkGrad)" stroke-width="13" stroke-linejoin="round" filter="url(#shieldGlow)"/>
+  <!-- Inner shield edge highlight -->
+  <path d="M256 86 L410 140 V270 C410 360 340 412 256 450 C172 412 102 360 102 270 V140 Z"
+        fill="none" stroke="#ff78ac" stroke-width="1.5" stroke-linejoin="round" opacity="0.5"/>
+
+  <!-- Orbital ring (encryption rounds motif) -->
+  <circle cx="256" cy="256" r="108" fill="none" stroke="#ff78ac" stroke-width="1" opacity="0.22" stroke-dasharray="3 6"/>
+  <circle cx="256" cy="256" r="108" fill="none" stroke="url(#pinkGrad)" stroke-width="2.5" opacity="0.6"
+          stroke-dasharray="12 240" stroke-dashoffset="-60" stroke-linecap="round"/>
+
+  <!-- Central hexagon (cipher block) -->
+  <path d="M256 170 L330 212 V298 L256 340 L182 298 V212 Z"
+        fill="url(#hexFace)"
+        stroke="url(#pinkGrad)" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Inner hexagon highlight -->
+  <path d="M256 186 L316 222 V290 L256 326 L196 290 V222 Z"
+        fill="none" stroke="#ff78ac" stroke-width="0.8" opacity="0.4"/>
+
+  <!-- Keyhole (central focal point, brightest element) -->
+  <g filter="url(#keyGlow)">
+    <!-- Outer ring -->
+    <circle cx="256" cy="246" r="15" fill="none" stroke="#ff78ac" stroke-width="2.5"/>
+    <!-- Inner dot -->
+    <circle cx="256" cy="246" r="7" fill="#ff78ac"/>
+    <!-- Stem -->
+    <path d="M249 256 L263 256 L267 290 L245 290 Z" fill="#ff78ac"/>
+  </g>
+  <!-- Crisp keyhole on top of glow -->
+  <circle cx="256" cy="246" r="15" fill="none" stroke="#ff78ac" stroke-width="2.5"/>
+  <circle cx="256" cy="246" r="7" fill="#ff78ac"/>
+  <path d="M249 256 L263 256 L267 290 L245 290 Z" fill="#ff78ac"/>
+
+  <!-- Bright spark accent (memorable highlight) -->
+  <circle cx="378" cy="148" r="6" fill="#ff78ac" opacity="0.95"/>
+  <circle cx="378" cy="148" r="3" fill="#ffffff" opacity="0.7"/>
+
+  <!-- Orbital dots (encryption rounds) -->
+  <circle cx="256" cy="148" r="4" fill="#ff78ac" opacity="0.7"/>
+  <circle cx="350" cy="304" r="4" fill="#ff78ac" opacity="0.7"/>
+  <circle cx="162" cy="304" r="4" fill="#ff78ac" opacity="0.7"/>
+
+  <!-- Corner precision mark -->
+  <g opacity="0.4">
+    <rect x="444" y="444" width="22" height="22" rx="3" fill="none" stroke="#bd0249" stroke-width="1"/>
+    <rect x="450" y="450" width="10" height="10" rx="1.5" fill="#ff78ac" opacity="0.5"/>
+  </g>
+</svg>
