@@ -4,10 +4,10 @@
 
 ## 简介
 
-- **仓库描述**：安全与加密工具类库，哈希 / 对称加密 / 非对称加密 / 密钥派生 / 编码 / 随机数 / 校验和
+- **仓库描述**：安全与加密工具类库，哈希 / 对称加密 / 非对称加密 / 混合加密 / 密钥派生 / 编码 / 随机数 / 校验和
 - **语言**：C#
 - **目标**：为常见加密操作提供简单、易用、安全的统一封装 API，方便在业务代码中直接调用
-- **当前版本**：1.1.0
+- **当前版本**：1.1.1
 - **目标框架**：`netstandard2.1`、`net8.0`
 - **依赖**：[`BouncyCastle.Cryptography`](https://www.nuget.org/packages/BouncyCastle.Cryptography) 2.5.1（国密 SM2/SM3/SM4、SHA-3、Blake2、ChaCha20-Poly1305、Argon2 等算法内核）
 
@@ -18,6 +18,7 @@
 | 哈希 | MD5、SHA-1/256/384/512、SHA3-256/384/512、SM3、HMAC（MD5/SHA1/SHA256/SHA384/SHA512/SM3）、Blake2b/Blake2s |
 | 对称加密 | AES（CBC/ECB/GCM）、DES、TripleDES、RC2、ChaCha20-Poly1305、SM4 |
 | 非对称加密 | RSA（OAEP-SHA256 + PSS-SHA256）、DSA（SHA-256withDSA）、ECC（NIST P-256，ECDSA + ECDH）、SM2（C1C3C2） |
+| 混合加密 | RSA+AES-256-GCM、RSA+AES-256-CBC、RSA+ChaCha20-Poly1305、SM2+AES-256-GCM、SM2+SM4-CBC、SM2+ChaCha20-Poly1305、ECIES（ECDH+AES-256-GCM）、ECIES（ECDH+ChaCha20-Poly1305） |
 | 密钥派生 | PBKDF2、BCrypt 形态（底层 PBKDF2）、SCrypt、HKDF、Argon2id |
 | 编码 | Hex、Base64（标准 + URL 安全）、Base32、Base58（Bitcoin 码表） |
 | 随机数 | `SecureRandomHelper`（基于 `RandomNumberGenerator`，含口令/UUID 生成） |
@@ -27,15 +28,15 @@
 ## 安装
 
 ```bash
-dotnet add package Chet.Security --version 1.1.0
+dotnet add package Chet.Security --version 1.1.1
 ```
 
 ```powershell
-Install-Package Chet.Security -Version 1.1.0
+Install-Package Chet.Security -Version 1.1.1
 ```
 
 ```xml
-<PackageReference Include="Chet.Security" Version="1.1.0" />
+<PackageReference Include="Chet.Security" Version="1.1.1" />
 ```
 
 ## 快速示例
@@ -68,12 +69,22 @@ string pt = RSAHelper.Decrypt(ct, rsaPriv);
 string sig = RSAHelper.SignData("payload", rsaPriv);
 bool ok = RSAHelper.VerifyData("payload", sig, rsaPub);
 
+string chunked = RSAHelper.EncryptChunked(longText, rsaPub);     // 并行分块加密（. 分隔）
+string recovered = RSAHelper.DecryptChunked(chunked, rsaPriv);
+
 var (sm2Pub, sm2Priv) = SM2Helper.GenerateKeyPair();              // 国密 SM2，Base64 密钥
 string c = SM2Helper.Encrypt("hello", sm2Pub);
 
 var (eccPub, eccPriv) = ECCHelper.GenerateKeyPair();             // NIST P-256
 string es = ECCHelper.Sign("data", eccPriv);
 bool ev = ECCHelper.Verify("data", es, eccPub);
+
+// ── 混合加密（信封加密，长文本推荐） ──
+string envelope = HybridEncryptionHelper.RsaAesGcmEncrypt("long text", rsaPub);
+string decrypted = HybridEncryptionHelper.RsaAesGcmDecrypt(envelope, rsaPriv);
+
+string sm2Envelope = HybridEncryptionHelper.Sm2Sm4Encrypt("国密混合", sm2Pub);  // 纯国密
+string eciesEnv = HybridEncryptionHelper.EciesEncrypt("secret", eccPub);       // ECIES 前向安全
 
 // ── 密钥派生 ──
 byte[] salt = PBKDF2Helper.GenerateSalt(16);
@@ -101,7 +112,7 @@ string h = service.Encode("hello");  // 返回小写十六进制摘要
 
 🔗 **[https://qiect.github.io/Chet.Security/](https://qiect.github.io/Chet.Security/)**
 
-按算法分类组织（编码 / 哈希 / 对称加密 / 非对称加密 / 密钥派生 / 随机数 / 校验和 / 统一门面），每个帮助类的方法都有签名、参数表、返回值与可运行示例。
+按算法分类组织（编码 / 哈希 / 对称加密 / 非对称加密 / 混合加密 / 密钥派生 / 随机数 / 校验和 / 统一门面），每个帮助类的方法都有签名、参数表、返回值与可运行示例。
 
 ## 项目结构
 
@@ -120,6 +131,7 @@ Chet.Security/
 │   ├── Hash/                       # MD5 / SHA / SM3 / HMAC / Blake2
 │   ├── Symmetric/                  # AES / DES / TripleDES / RC2 / ChaCha20Poly1305 / SM4
 │   ├── Asymmetric/                 # RSA / DSA / ECC / SM2
+│   ├── Hybrid/                    # HybridEncryption（RSA+AES-GCM / SM2+SM4 / ECIES 等）
 │   ├── KeyDerivation/             # PBKDF2 / BCrypt / SCrypt / HKDF / Argon2
 │   ├── Random/                     # SecureRandom
 │   └── Checksum/                   # CRC32 / CRC64 / Adler32
