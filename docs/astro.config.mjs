@@ -45,6 +45,10 @@ export default defineConfig({
           items: [{ autogenerate: { directory: 'asymmetric', collapsed: true } }],
         },
         {
+          label: '[lucide:shield-check] 混合加密',
+          items: [{ autogenerate: { directory: 'hybrid', collapsed: true } }],
+        },
+        {
           label: '[lucide:key-round] 密钥派生',
           items: [{ autogenerate: { directory: 'key-derivation', collapsed: true } }],
         },

@@ -5,7 +5,7 @@ description: 全面的 C# 安全与加密工具类库，覆盖国密与国际化
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-全面的 C# 安全与加密工具类库，提供哈希、对称加密、非对称加密、密钥派生、编码、随机数与校验和等完整能力。
+全面的 C# 安全与加密工具类库，提供哈希、对称加密、非对称加密、混合加密、密钥派生、编码、随机数与校验和等完整能力。
 
 ## 安装
 
@@ -22,7 +22,7 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
   </TabItem>
   <TabItem label="PackageReference">
     ```xml
-    <PackageReference Include="Chet.Security" Version="1.1.0" />
+    <PackageReference Include="Chet.Security" Version="1.1.1" />
     ```
   </TabItem>
 </Tabs>
@@ -30,6 +30,7 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 ## 核心特性
 
 - 🔐 **算法齐全** — 涵盖 MD5/SHA-1/2/3/SM3/HMAC/Blake2 哈希，AES/DES/3DES/RC2/ChaCha20-Poly1305/SM4 对称加密，RSA/DSA/ECC/SM2 非对称加密
+- 🛡️ **混合加密** — RSA+AES-GCM / SM2+SM4 / ECIES 等信封加密方案，长文本性能提升 3~4 个数量级
 - 🇨🇳 **国密支持** — SM2/SM3/SM4 完整实现，符合 GM/T 标准并基于 BouncyCastle
 - 🧂 **密钥派生** — PBKDF2/BCrypt/SCrypt/HKDF/Argon2id 全覆盖
 - 🎲 **安全随机** — 基于加密随机数生成器

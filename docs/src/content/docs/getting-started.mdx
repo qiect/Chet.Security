@@ -25,7 +25,7 @@ import { Card, CardGrid, Steps, Tabs, TabItem } from '@astrojs/starlight/compone
   </TabItem>
   <TabItem label="PackageReference">
     ```xml
-    <PackageReference Include="Chet.Security" Version="1.1.0" />
+    <PackageReference Include="Chet.Security" Version="1.1.1" />
     ```
   </TabItem>
 </Tabs>
@@ -161,7 +161,13 @@ public class MyService
 
 ## 版本历史
 
-### v1.1.0（当前版本）
+### v1.1.1（当前版本）
+
+- RSA 长文本加解密：新增 `EncryptChunked` / `DecryptChunked` 并行分块方法（`.` 分隔符，多核并行加速）
+- 标记 `EncryptLong` / `DecryptLong` 为 `[Obsolete]`，引导至 `EncryptChunked` 或混合加密方案
+- 新增 `HybridEncryptionHelper` 混合加密文档（RSA+AES-GCM、SM2+SM4、ECIES 等 8 种方案）
+
+### v1.1.0
 
 - 全量重构：多目标 `netstandard2.1` + `net8.0`，内置 polyfill 兼容层统一 API 行为
 - 重写所有加密类，统一 `XxxHelper` 静态类命名与编码风格

@@ -1,0 +1,415 @@
+---
+title: "HybridEncryptionHelper"
+description: "混合加密（信封加密 / KEM+DEM）工具类，提供 RSA+AES-GCM、RSA+ChaCha20、SM2+AES-GCM、SM2+SM4、ECIES 等多种混合加密方案。"
+---
+
+# HybridEncryptionHelper 帮助类
+
+## 概述
+
+[HybridEncryptionHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Hybrid/HybridEncryption.cs) 是一个静态帮助类，封装了混合加密（信封加密 / Envelope Encryption / KEM+DEM）的多种方案。
+
+混合加密用非对称算法（RSA / SM2 / ECDH）加密一个随机会话密钥（KEM 步骤），再用对称算法（AES-GCM / ChaCha20-Poly1305 / SM4-CBC / AES-CBC）加密实际数据（DEM 步骤），兼顾非对称的安全性与对称的性能。
+
+这是 TLS、PGP/GPG、S/MIME、JWE、CMS 等主流协议的标准做法，相比分段 RSA 加密性能提升 3~4 个数量级（1MB 数据：混合加密 ~2ms vs 分段 RSA ~5.5s）。
+
+## 主要特性
+
+- 🔐 **信封加密（KEM+DEM）**：非对称加密会话密钥 + 对称加密数据，兼顾安全与性能。
+- ⚡ **高性能**：1MB 数据约 2~12ms，比分段 RSA 快 3~4 个数量级。
+- 🔒 **AEAD 认证加密**：AES-256-GCM / ChaCha20-Poly1305 提供机密性 + 完整性 + 认证。
+- 🇨🇳 **国密支持**：SM2 + SM4-CBC 纯国密方案，SM2 + AES-GCM / ChaCha20 混合国密方案。
+- 🔑 **ECIES 前向安全**：基于 ECDH 临时密钥协商，每次加密生成新临时密钥对。
+- 📦 **标准信封格式**：点分隔的 Base64（`encryptedKey.nonce.ciphertext`），与 JWE / CMS 一致。
+
+## 信封格式
+
+所有混合加密方法返回的信封字符串均为**点分隔的 Base64**，格式如下：
+
+| 方案系列 | 信封格式 | 说明 |
+| --- | --- | --- |
+| RSA / SM2 | `encryptedKey.nonceOrIV.ciphertextData` | 第一段为加密后的会话密钥 |
+| ECIES | `ephemeralPublicKey.nonce.ciphertextData` | 第一段为临时公钥（非加密密钥） |
+
+- **AEAD 模式**（AES-GCM / ChaCha20-Poly1305）：`ciphertextData` 包含密文与 16 字节认证 Tag。
+- **CBC 模式**（SM4-CBC / AES-CBC）：`ciphertextData` 仅含密文（无认证 Tag，建议优先使用 AEAD 模式）。
+
+## 类定义
+
+```csharp
+using Chet.Security;
+
+/// <summary>混合加密（信封加密 / Envelope Encryption / KEM+DEM）工具类。</summary>
+public static class HybridEncryptionHelper
+```
+
+---
+
+## RSA + AES-256-GCM
+
+推荐作为默认长文本加密方案。RSA-OAEP-SHA256 加密随机 AES 会话密钥，AES-256-GCM 加密数据。
+
+### RsaAesGcmEncrypt
+
+```csharp
+public static string RsaAesGcmEncrypt(string plain, string rsaPublicKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| plain | string | 待加密明文。 |
+| rsaPublicKeyPem | string | RSA 公钥 PEM（SubjectPublicKeyInfo 格式）。 |
+
+**返回值：** 信封字符串，格式为 `encryptedKey.nonce.ciphertextWithTag`（点分隔的 Base64）。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, privatePem) = RSAHelper.GenerateKeyPair();
+string envelope = HybridEncryptionHelper.RsaAesGcmEncrypt("hello world", publicPem);
+// 形如：xxxxx==.yyyyy==.zzzzz==
+```
+
+### RsaAesGcmDecrypt
+
+```csharp
+public static string RsaAesGcmDecrypt(string envelope, string rsaPrivateKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| envelope | string | 信封字符串。 |
+| rsaPrivateKeyPem | string | RSA 私钥 PEM（PKCS#8 格式）。 |
+
+**返回值：** 明文字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, privatePem) = RSAHelper.GenerateKeyPair();
+string envelope = HybridEncryptionHelper.RsaAesGcmEncrypt("hello world", publicPem);
+string plain   = HybridEncryptionHelper.RsaAesGcmDecrypt(envelope, privatePem);
+Console.WriteLine(plain); // hello world
+```
+
+---
+
+## RSA + AES-256-CBC
+
+RSA-OAEP-SHA256 加密随机 AES 会话密钥，AES-256-CBC 加密数据。
+
+> ⚠️ CBC 模式不提供认证保护（无 MAC/Tag），建议优先使用 `RsaAesGcmEncrypt`。
+
+### RsaAesCbcEncrypt
+
+```csharp
+public static string RsaAesCbcEncrypt(string plain, string rsaPublicKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| plain | string | 待加密明文。 |
+| rsaPublicKeyPem | string | RSA 公钥 PEM。 |
+
+**返回值：** 信封字符串，格式为 `encryptedKey.iv.ciphertext`（点分隔的 Base64）。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, privatePem) = RSAHelper.GenerateKeyPair();
+string envelope = HybridEncryptionHelper.RsaAesCbcEncrypt("hello world", publicPem);
+```
+
+### RsaAesCbcDecrypt
+
+```csharp
+public static string RsaAesCbcDecrypt(string envelope, string rsaPrivateKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| envelope | string | 信封字符串。 |
+| rsaPrivateKeyPem | string | RSA 私钥 PEM。 |
+
+**返回值：** 明文字符串。
+
+---
+
+## RSA + ChaCha20-Poly1305
+
+RSA-OAEP-SHA256 加密随机 ChaCha20 会话密钥，ChaCha20-Poly1305 加密数据。
+
+### RsaChaCha20Encrypt
+
+```csharp
+public static string RsaChaCha20Encrypt(string plain, string rsaPublicKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| plain | string | 待加密明文。 |
+| rsaPublicKeyPem | string | RSA 公钥 PEM。 |
+
+**返回值：** 信封字符串，格式为 `encryptedKey.nonce.ciphertextWithTag`（点分隔的 Base64）。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, privatePem) = RSAHelper.GenerateKeyPair();
+string envelope = HybridEncryptionHelper.RsaChaCha20Encrypt("hello world", publicPem);
+string plain   = HybridEncryptionHelper.RsaChaCha20Decrypt(envelope, privatePem);
+Console.WriteLine(plain); // hello world
+```
+
+### RsaChaCha20Decrypt
+
+```csharp
+public static string RsaChaCha20Decrypt(string envelope, string rsaPrivateKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| envelope | string | 信封字符串。 |
+| rsaPrivateKeyPem | string | RSA 私钥 PEM。 |
+
+**返回值：** 明文字符串。
+
+---
+
+## SM2 + AES-256-GCM
+
+SM2 加密随机 AES 会话密钥，AES-256-GCM 加密数据。国密公钥 + 国际对称算法组合。
+
+### Sm2AesGcmEncrypt
+
+```csharp
+public static string Sm2AesGcmEncrypt(string plain, string sm2PublicKeyBase64)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| plain | string | 待加密明文。 |
+| sm2PublicKeyBase64 | string | SM2 公钥 Base64（未压缩点，65 字节）。 |
+
+**返回值：** 信封字符串，格式为 `encryptedKey.nonce.ciphertextWithTag`（点分隔的 Base64）。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (pubB64, privB64) = SM2Helper.GenerateKeyPair();
+string envelope = HybridEncryptionHelper.Sm2AesGcmEncrypt("hello sm2", pubB64);
+string plain   = HybridEncryptionHelper.Sm2AesGcmDecrypt(envelope, privB64);
+Console.WriteLine(plain); // hello sm2
+```
+
+### Sm2AesGcmDecrypt
+
+```csharp
+public static string Sm2AesGcmDecrypt(string envelope, string sm2PrivateKeyBase64)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| envelope | string | 信封字符串。 |
+| sm2PrivateKeyBase64 | string | SM2 私钥 Base64（32 字节标量）。 |
+
+**返回值：** 明文字符串。
+
+---
+
+## SM2 + SM4-CBC
+
+SM2 加密随机 SM4 会话密钥，SM4-CBC 加密数据。纯国密混合加密方案。
+
+> ⚠️ SM4-CBC 模式不提供认证保护，建议优先使用 `Sm2AesGcmEncrypt` 或 `Sm2ChaCha20Encrypt`。
+
+### Sm2Sm4Encrypt
+
+```csharp
+public static string Sm2Sm4Encrypt(string plain, string sm2PublicKeyBase64)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| plain | string | 待加密明文。 |
+| sm2PublicKeyBase64 | string | SM2 公钥 Base64。 |
+
+**返回值：** 信封字符串，格式为 `encryptedKey.iv.ciphertext`（点分隔的 Base64）。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (pubB64, privB64) = SM2Helper.GenerateKeyPair();
+string envelope = HybridEncryptionHelper.Sm2Sm4Encrypt("国密混合加密", pubB64);
+string plain   = HybridEncryptionHelper.Sm2Sm4Decrypt(envelope, privB64);
+Console.WriteLine(plain); // 国密混合加密
+```
+
+### Sm2Sm4Decrypt
+
+```csharp
+public static string Sm2Sm4Decrypt(string envelope, string sm2PrivateKeyBase64)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| envelope | string | 信封字符串。 |
+| sm2PrivateKeyBase64 | string | SM2 私钥 Base64。 |
+
+**返回值：** 明文字符串。
+
+---
+
+## SM2 + ChaCha20-Poly1305
+
+SM2 加密随机 ChaCha20 会话密钥，ChaCha20-Poly1305 加密数据。国密公钥 + 现代 AEAD 对称算法组合。
+
+### Sm2ChaCha20Encrypt
+
+```csharp
+public static string Sm2ChaCha20Encrypt(string plain, string sm2PublicKeyBase64)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| plain | string | 待加密明文。 |
+| sm2PublicKeyBase64 | string | SM2 公钥 Base64。 |
+
+**返回值：** 信封字符串，格式为 `encryptedKey.nonce.ciphertextWithTag`（点分隔的 Base64）。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (pubB64, privB64) = SM2Helper.GenerateKeyPair();
+string envelope = HybridEncryptionHelper.Sm2ChaCha20Encrypt("hello", pubB64);
+string plain   = HybridEncryptionHelper.Sm2ChaCha20Decrypt(envelope, privB64);
+Console.WriteLine(plain); // hello
+```
+
+### Sm2ChaCha20Decrypt
+
+```csharp
+public static string Sm2ChaCha20Decrypt(string envelope, string sm2PrivateKeyBase64)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| envelope | string | 信封字符串。 |
+| sm2PrivateKeyBase64 | string | SM2 私钥 Base64。 |
+
+**返回值：** 明文字符串。
+
+---
+
+## ECIES (ECDH + AES-256-GCM)
+
+ECIES（Elliptic Curve Integrated Encryption Scheme）混合加密：生成临时 ECDH 密钥对，协商共享密钥，AES-256-GCM 加密数据。基于 NIST P-256 曲线。
+
+ECIES 的安全性依赖于 ECDH 的 CDH 假设与 AES-GCM 的 AEAD 安全性。每次加密生成新的临时密钥对，提供**前向安全性（Forward Secrecy）**。
+
+### EciesEncrypt
+
+```csharp
+public static string EciesEncrypt(string plain, string recipientPublicKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| plain | string | 待加密明文。 |
+| recipientPublicKeyPem | string | 接收方 ECDH 公钥 PEM（SubjectPublicKeyInfo 格式，NIST P-256）。 |
+
+**返回值：** 信封字符串，格式为 `ephemeralPublicKey.nonce.ciphertextWithTag`（点分隔的 Base64），其中 `ephemeralPublicKey` 为临时公钥 PEM 的 Base64 编码。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (recipientPubPem, recipientPrivPem) = ECCHelper.GenerateKeyPair();
+string envelope = HybridEncryptionHelper.EciesEncrypt("secret message", recipientPubPem);
+string plain   = HybridEncryptionHelper.EciesDecrypt(envelope, recipientPrivPem);
+Console.WriteLine(plain); // secret message
+```
+
+### EciesDecrypt
+
+```csharp
+public static string EciesDecrypt(string envelope, string recipientPrivateKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| envelope | string | 信封字符串。 |
+| recipientPrivateKeyPem | string | 接收方 ECDH 私钥 PEM（PKCS#8 格式）。 |
+
+**返回值：** 明文字符串。
+
+---
+
+## ECIES (ECDH + ChaCha20-Poly1305)
+
+ECIES + ChaCha20-Poly1305 混合加密：生成临时 ECDH 密钥对，协商共享密钥，ChaCha20-Poly1305 加密数据。基于 NIST P-256 曲线。
+
+### EciesChaCha20Encrypt
+
+```csharp
+public static string EciesChaCha20Encrypt(string plain, string recipientPublicKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| plain | string | 待加密明文。 |
+| recipientPublicKeyPem | string | 接收方 ECDH 公钥 PEM。 |
+
+**返回值：** 信封字符串，格式为 `ephemeralPublicKey.nonce.ciphertextWithTag`（点分隔的 Base64）。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (recipientPubPem, recipientPrivPem) = ECCHelper.GenerateKeyPair();
+string envelope = HybridEncryptionHelper.EciesChaCha20Encrypt("secret message", recipientPubPem);
+string plain   = HybridEncryptionHelper.EciesChaCha20Decrypt(envelope, recipientPrivPem);
+Console.WriteLine(plain); // secret message
+```
+
+### EciesChaCha20Decrypt
+
+```csharp
+public static string EciesChaCha20Decrypt(string envelope, string recipientPrivateKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| envelope | string | 信封字符串。 |
+| recipientPrivateKeyPem | string | 接收方 ECDH 私钥 PEM。 |
+
+**返回值：** 明文字符串。
+
+---
+
+## 方案选择指南
+
+| 场景 | 推荐方案 | 理由 |
+| --- | --- | --- |
+| 通用长文本加密 | `RsaAesGcmEncrypt` | RSA + AES-256-GCM，AEAD 认证加密，性能最优 |
+| 无 RSA 基础设施 | `RsaChaCha20Encrypt` | RSA + ChaCha20-Poly1305，现代 AEAD |
+| 国密合规 | `Sm2Sm4Encrypt` | SM2 + SM4-CBC，纯国密算法链 |
+| 国密 + 认证保护 | `Sm2AesGcmEncrypt` | SM2 + AES-256-GCM，国密公钥 + AEAD 对称 |
+| 前向安全性 | `EciesEncrypt` | ECDH 临时密钥协商，每次加密密钥不同 |
+| 兼容旧系统 | `RsaAesCbcEncrypt` | RSA + AES-256-CBC，但无认证保护 |

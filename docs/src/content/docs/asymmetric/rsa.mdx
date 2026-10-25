@@ -1,13 +1,13 @@
 ---
 title: "RSAHelper"
-description: "RSA 非对称加密工具类，提供 PEM/PKCS#8 密钥生成、OAEP-SHA256 加解密、PSS-SHA256 签名验签与长文本分段加解密。"
+description: "RSA 非对称加密工具类，提供 PEM/PKCS#8 密钥生成、OAEP-SHA256 加解密、PSS-SHA256 签名验签与长文本分块加解密。"
 ---
 
 # RSAHelper 帮助类
 
 ## 概述
 
-[RSAHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Asymmetric/RSA.cs) 是一个静态帮助类，封装了 RSA 非对称加密的常见操作：基于 BouncyCastle 生成密钥对并以 PEM（公钥 SubjectPublicKeyInfo / 私钥 PKCS#8 PrivateKeyInfo）格式返回，加解密统一采用 OAEP-SHA256 填充，签名验签统一采用 PSS-SHA256 填充，并针对超长明文提供分段加解密能力。
+[RSAHelper](https://github.com/qiect/Chet.Security/blob/main/Chet.Security/Asymmetric/RSA.cs) 是一个静态帮助类，封装了 RSA 非对称加密的常见操作：基于 BouncyCastle 生成密钥对并以 PEM（公钥 SubjectPublicKeyInfo / 私钥 PKCS#8 PrivateKeyInfo）格式返回，加解密统一采用 OAEP-SHA256 填充，签名验签统一采用 PSS-SHA256 填充，并针对超长明文提供分块并行加解密能力。
 
 ## 主要特性
 
@@ -15,7 +15,7 @@ description: "RSA 非对称加密工具类，提供 PEM/PKCS#8 密钥生成、OA
 - 🔒 **OAEP-SHA256 加密**：使用 `RSAEncryptionPadding.OaepSHA256` 填充方案，安全性高于 PKCS#1 v1.5。
 - ✍️ **PSS-SHA256 签名**：签名与验签采用 `RSASignaturePadding.Pss`，并支持自定义哈希算法名。
 - 📦 **多形态密钥输入**：同时支持 PEM 字符串、DER 字节、DER Base64 字符串三种密钥形式。
-- 📏 **长文本分段加解密**：`EncryptLong` / `DecryptLong` 自动按密钥容量拆分明文，密文以 `|||` 连接多段 Base64。
+- ⚡ **长文本分块并行加解密**：`EncryptChunked` / `DecryptChunked` 自动按密钥容量拆分明文，各段在多核上并行处理，密文以 `.` 连接多段 Base64。
 - 🧪 **多目标兼容**：底层基于 .NET BCL `RSA` 实现，配合 `CryptoPolyfill` 在 `netstandard2.1` 与 `net8.0` 下行为一致。
 - 🌐 **PEM 标准格式**：公钥 `PUBLIC KEY`、私钥 `PRIVATE KEY`，64 字符分行，符合 RFC 7468。
 
@@ -24,7 +24,7 @@ description: "RSA 非对称加密工具类，提供 PEM/PKCS#8 密钥生成、OA
 ```csharp
 using Chet.Security;
 
-/// <summary>RSA 非对称加密工具类：PEM（SubjectPublicKeyInfo 公钥 / PKCS#8 PrivateKeyInfo 私钥）密钥格式，OAEP-SHA256 加密、PSS-SHA256 签名，并支持长文本分段加解密。</summary>
+/// <summary>RSA 非对称加密工具类：PEM（SubjectPublicKeyInfo 公钥 / PKCS#8 PrivateKeyInfo 私钥）密钥格式，OAEP-SHA256 加密、PSS-SHA256 签名，并支持长文本分块加解密。</summary>
 public static class RSAHelper
 ```
 
@@ -209,14 +209,14 @@ byte[] plain  = RSAHelper.Decrypt(cipher, privDer);
 Console.WriteLine(Encoding.UTF8.GetString(plain));
 ```
 
-## 长文本分段加解密
+## 长文本分块加解密
 
-### EncryptLong
+### EncryptChunked
 
-对超长明文进行分段 RSA-OAEP-SHA256 加密，多个密文块以 `|||` 连接，每段单独 Base64。
+对超长明文进行并行分块 RSA-OAEP-SHA256 加密，多个密文块以 `.` 连接，每段单独 Base64。各段在多核上并行处理，相比 `EncryptLong` 有显著性能提升。
 
 ```csharp
-public static string EncryptLong(string plain, string publicKeyPem)
+public static string EncryptChunked(string plain, string publicKeyPem)
 ```
 
 | 参数名 | 类型 | 描述 |
@@ -224,7 +224,9 @@ public static string EncryptLong(string plain, string publicKeyPem)
 | plain | string | 待加密明文（任意长度）。 |
 | publicKeyPem | string | 公钥 PEM。 |
 
-**返回值：** 形如 `base64_1|||base64_2|||...` 的分段密文；密钥位数过小（OAEP 单块明文 ≤ 0）时抛出 `CryptographicException`。
+**返回值：** 形如 `base64_1.base64_2....` 的分块密文；密钥位数过小（OAEP 单块明文 ≤ 0）时抛出 `CryptographicException`。
+
+**性能提示：** 分块 RSA 加密长文本仍较慢（1MB 约 2~20 秒，视核数而定），且密文膨胀约 2.5 倍。推荐使用 `HybridEncryptionHelper.RsaAesGcmEncrypt` 等混合加密方案（1MB 约 2~12ms）。
 
 **示例：**
 
@@ -233,15 +235,75 @@ using Chet.Security;
 
 var (publicPem, _) = RSAHelper.GenerateKeyPair(2048);
 string longText = new string('A', 5000); // 超过单块上限
-string cipher = RSAHelper.EncryptLong(longText, publicPem);
-// 形如：xxxxx==|||yyyyy==|||zzzzz==
+string cipher = RSAHelper.EncryptChunked(longText, publicPem);
+// 形如：xxxxx==.yyyyy==.zzzzz==
 ```
 
-### DecryptLong
+### DecryptChunked
+
+并行解密 `EncryptChunked` 输出的分块密文，返回完整明文。各段在多核上并行处理。
+
+```csharp
+public static string DecryptChunked(string cipherBase64, string privateKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| cipherBase64 | string | 由 `EncryptChunked` 产生的密文（多段以 `.` 连接的 Base64）。 |
+| privateKeyPem | string | 私钥 PEM。 |
+
+**返回值：** 完整明文字符串。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, privatePem) = RSAHelper.GenerateKeyPair(2048);
+string longText = new string('A', 5000);
+string cipher = RSAHelper.EncryptChunked(longText, publicPem);
+string plain  = RSAHelper.DecryptChunked(cipher, privatePem);
+Console.WriteLine(plain.Length); // 5000
+```
+
+### EncryptLong ⚠️ 已过时
+
+> ⚠️ **已标记 `[Obsolete]`**，建议使用 `EncryptChunked`（并行分块，多核性能更优）或 `HybridEncryptionHelper.RsaAesGcmEncrypt`（混合加密，性能提升 3~4 个数量级）。
+
+对超长明文进行分段 RSA-OAEP-SHA256 加密，多个密文块以 `|||` 连接，每段单独 Base64。
+
+```csharp
+[Obsolete("建议使用 EncryptChunked 或 HybridEncryptionHelper.RsaAesGcmEncrypt。")]
+public static string EncryptLong(string plain, string publicKeyPem)
+```
+
+| 参数名 | 类型 | 描述 |
+| --- | --- | --- |
+| plain | string | 待加密明文（任意长度）。 |
+| publicKeyPem | string | 公钥 PEM。 |
+
+**返回值：** 形如 `base64_1|||base64_2|||...` 的分段密文。
+
+**示例：**
+
+```csharp
+using Chet.Security;
+
+var (publicPem, _) = RSAHelper.GenerateKeyPair(2048);
+string longText = new string('A', 5000);
+#pragma warning disable CS0618
+string cipher = RSAHelper.EncryptLong(longText, publicPem);
+#pragma warning restore CS0618
+```
+
+### DecryptLong ⚠️ 已过时
+
+> ⚠️ **已标记 `[Obsolete]`**，建议使用 `DecryptChunked`（并行分块解密，多核性能更优）或 `HybridEncryptionHelper.RsaAesGcmDecrypt`（混合解密）。
 
 解密 `EncryptLong` 输出的分段密文，返回完整明文。
 
 ```csharp
+[Obsolete("建议使用 DecryptChunked 或 HybridEncryptionHelper.RsaAesGcmDecrypt。")]
 public static string DecryptLong(string cipherBase64, string privateKeyPem)
 ```
 
@@ -259,8 +321,10 @@ using Chet.Security;
 
 var (publicPem, privatePem) = RSAHelper.GenerateKeyPair(2048);
 string longText = new string('A', 5000);
+#pragma warning disable CS0618
 string cipher = RSAHelper.EncryptLong(longText, publicPem);
 string plain  = RSAHelper.DecryptLong(cipher, privatePem);
+#pragma warning restore CS0618
 Console.WriteLine(plain.Length); // 5000
 ```
 

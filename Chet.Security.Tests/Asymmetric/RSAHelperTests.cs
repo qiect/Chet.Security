@@ -63,8 +63,35 @@ public class RSAHelperTests
     {
         var (pub, priv) = RSAHelper.GenerateKeyPair();
         var plain = new string('A', 500) + "测试 tail";
+#pragma warning disable CS0618
         var cipher = RSAHelper.EncryptLong(plain, pub);
         Assert.Equal(plain, RSAHelper.DecryptLong(cipher, priv));
+#pragma warning restore CS0618
+    }
+
+    /// <summary>
+    /// 验证长文本的EncryptChunked/DecryptChunked并行分块加密解密往返一致性
+    /// </summary>
+    [Fact]
+    public void EncryptChunked_DecryptChunked_RoundTripsOnLongText()
+    {
+        var (pub, priv) = RSAHelper.GenerateKeyPair();
+        var plain = new string('A', 500) + "分块测试 tail 🔒";
+        var cipher = RSAHelper.EncryptChunked(plain, pub);
+        Assert.Equal(plain, RSAHelper.DecryptChunked(cipher, priv));
+    }
+
+    /// <summary>
+    /// 验证EncryptChunked使用点号分隔符
+    /// </summary>
+    [Fact]
+    public void EncryptChunked_UsesDotSeparator()
+    {
+        var (pub, _) = RSAHelper.GenerateKeyPair();
+        var plain = new string('X', 500);
+        var cipher = RSAHelper.EncryptChunked(plain, pub);
+        Assert.Contains(".", cipher);
+        Assert.DoesNotContain("|||", cipher);
     }
 
     /// <summary>
