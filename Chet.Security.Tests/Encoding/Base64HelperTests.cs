@@ -3,8 +3,14 @@ using Xunit;
 
 namespace Chet.Security.Tests.Encoding;
 
+/// <summary>
+/// Base64编码算法单元测试
+/// </summary>
 public class Base64HelperTests
 {
+    /// <summary>
+    /// 验证Base64编码对RFC 4648已知向量的正确性
+    /// </summary>
     [Theory]
     [InlineData("f", "Zg==")]
     [InlineData("fo", "Zm8=")]
@@ -17,12 +23,18 @@ public class Base64HelperTests
         Assert.Equal(expected, Base64Helper.EncodeString(input));
     }
 
+    /// <summary>
+    /// 验证对空字节数组编码返回空字符串
+    /// </summary>
     [Fact]
     public void Encode_EmptyBytes_ReturnsEmptyString()
     {
         Assert.Equal(string.Empty, Base64Helper.Encode(Array.Empty<byte>()));
     }
 
+    /// <summary>
+    /// 验证标准Base64字符串的编解码往返一致性（含Unicode和emoji）
+    /// </summary>
     [Fact]
     public void RoundTrip_String_RecoversOriginal()
     {
@@ -31,6 +43,9 @@ public class Base64HelperTests
         Assert.Equal(text, Base64Helper.DecodeToString(encoded));
     }
 
+    /// <summary>
+    /// 验证URL安全Base64字符串的编解码往返一致性
+    /// </summary>
     [Fact]
     public void RoundTrip_UrlSafe_RecoversOriginal()
     {
@@ -39,6 +54,9 @@ public class Base64HelperTests
         Assert.Equal(text, Base64Helper.DecodeToString(encoded));
     }
 
+    /// <summary>
+    /// 验证URL安全Base64编码不包含填充符(=)和标准特殊字符(+/)
+    /// </summary>
     [Fact]
     public void EncodeUrlSafe_HasNoPaddingOrStandardSpecialChars()
     {
@@ -48,12 +66,18 @@ public class Base64HelperTests
         Assert.DoesNotContain("/", urlSafe);
     }
 
+    /// <summary>
+    /// 验证对null字节数组进行编码时抛出异常
+    /// </summary>
     [Fact]
     public void Encode_NullBytes_Throws()
     {
         Assert.Throws<ArgumentNullException>(() => Base64Helper.Encode(null!));
     }
 
+    /// <summary>
+    /// 验证对空或null字符串进行编码时抛出异常
+    /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -62,6 +86,9 @@ public class Base64HelperTests
         Assert.ThrowsAny<ArgumentException>(() => Base64Helper.EncodeString(input!));
     }
 
+    /// <summary>
+    /// 验证对空或null字符串进行解码时抛出异常
+    /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -70,6 +97,9 @@ public class Base64HelperTests
         Assert.ThrowsAny<ArgumentException>(() => Base64Helper.Decode(input!));
     }
 
+    /// <summary>
+    /// 验证对无效长度的Base64字符串进行解码时抛出FormatException
+    /// </summary>
     [Fact]
     public void Decode_InvalidLength_Throws()
     {

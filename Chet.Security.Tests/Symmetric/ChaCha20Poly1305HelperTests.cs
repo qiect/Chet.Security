@@ -4,8 +4,14 @@ using Xunit;
 
 namespace Chet.Security.Tests.Symmetric;
 
+/// <summary>
+/// ChaCha20-Poly1305认证加密算法单元测试
+/// </summary>
 public class ChaCha20Poly1305HelperTests
 {
+    /// <summary>
+    /// 验证字符串的ChaCha20-Poly1305加密解密往返一致性
+    /// </summary>
     [Fact]
     public void EncryptDecrypt_String_RoundTrips()
     {
@@ -14,6 +20,9 @@ public class ChaCha20Poly1305HelperTests
         Assert.Equal(plain, ChaCha20Poly1305Helper.Decrypt(cipher, "my-secret-key", "my-nonce"));
     }
 
+    /// <summary>
+    /// 验证字节数组的ChaCha20-Poly1305加密解密往返一致性
+    /// </summary>
     [Fact]
     public void EncryptDecrypt_Bytes_RoundTrips()
     {
@@ -24,6 +33,9 @@ public class ChaCha20Poly1305HelperTests
         Assert.Equal(plain, ChaCha20Poly1305Helper.Decrypt(cipher, key, nonce));
     }
 
+    /// <summary>
+    /// 验证生成的nonce为16个Base64字符（12字节）
+    /// </summary>
     [Fact]
     public void GenerateNonce_ReturnsSixteenBase64CharsForTwelveBytes()
     {
@@ -33,6 +45,9 @@ public class ChaCha20Poly1305HelperTests
         Assert.Equal(12, Convert.FromBase64String(nonce).Length);
     }
 
+    /// <summary>
+    /// 验证生成的密钥为非空的Base64字符串，解码后为32字节（256位）
+    /// </summary>
     [Fact]
     public void GenerateKey_ReturnsNonEmptyBase64DecodingTo32Bytes()
     {
@@ -41,6 +56,9 @@ public class ChaCha20Poly1305HelperTests
         Assert.Equal(32, Convert.FromBase64String(key).Length);
     }
 
+    /// <summary>
+    /// 验证使用错误密钥解密时抛出CryptographicException
+    /// </summary>
     [Fact]
     public void Decrypt_WithWrongKey_Throws()
     {
@@ -49,6 +67,9 @@ public class ChaCha20Poly1305HelperTests
             ChaCha20Poly1305Helper.Decrypt(cipher, "wrong-key-different", "nonce"));
     }
 
+    /// <summary>
+    /// 验证使用错误nonce解密时抛出CryptographicException
+    /// </summary>
     [Fact]
     public void Decrypt_WithWrongNonce_Throws()
     {
@@ -57,6 +78,9 @@ public class ChaCha20Poly1305HelperTests
             ChaCha20Poly1305Helper.Decrypt(cipher, "correct-key", "nonce-2"));
     }
 
+    /// <summary>
+    /// 验证对空或null明文进行加密时抛出异常
+    /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]

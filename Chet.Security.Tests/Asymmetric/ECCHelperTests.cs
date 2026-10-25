@@ -3,8 +3,14 @@ using Xunit;
 
 namespace Chet.Security.Tests.Asymmetric;
 
+/// <summary>
+/// ECC（椭圆曲线加密）单元测试
+/// </summary>
 public class ECCHelperTests
 {
+    /// <summary>
+    /// 验证生成密钥对返回有效的PEM格式字符串
+    /// </summary>
     [Fact]
     public void GenerateKeyPair_ReturnsPemStrings()
     {
@@ -15,6 +21,9 @@ public class ECCHelperTests
         Assert.Contains("PRIVATE KEY", priv);
     }
 
+    /// <summary>
+    /// 验证签名和验签流程的正确性
+    /// </summary>
     [Fact]
     public void Sign_Verify_Succeeds()
     {
@@ -24,6 +33,9 @@ public class ECCHelperTests
         Assert.True(ECCHelper.Verify(data, signature, pub));
     }
 
+    /// <summary>
+    /// 验证对篡改数据进行验签时返回失败
+    /// </summary>
     [Fact]
     public void Verify_TamperedData_ReturnsFalse()
     {
@@ -32,6 +44,9 @@ public class ECCHelperTests
         Assert.False(ECCHelper.Verify("tampered-data", signature, pub));
     }
 
+    /// <summary>
+    /// 验证派生共享密钥返回32字节长度
+    /// </summary>
     [Fact]
     public void DeriveSharedSecret_ReturnsThirtyTwoBytes()
     {
@@ -40,6 +55,9 @@ public class ECCHelperTests
         Assert.Equal(32, shared.Length);
     }
 
+    /// <summary>
+    /// 验证两对密钥之间派生的共享密钥具有对称性（Alice和Bob得到相同的共享密钥）
+    /// </summary>
     [Fact]
     public void DeriveSharedSecret_IsSymmetricBetweenTwoKeyPairs()
     {
@@ -52,6 +70,9 @@ public class ECCHelperTests
         Assert.Equal(aliceShared, bobShared);
     }
 
+    /// <summary>
+    /// 验证不同密钥对派生的共享密钥不同
+    /// </summary>
     [Fact]
     public void DeriveSharedSecret_DiffersForDifferentKeyPairs()
     {
@@ -64,6 +85,9 @@ public class ECCHelperTests
         Assert.NotEqual(withB, withC);
     }
 
+    /// <summary>
+    /// 验证对空或null数据进行签名时抛出异常
+    /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]

@@ -3,8 +3,14 @@ using Xunit;
 
 namespace Chet.Security.Tests.Asymmetric;
 
+/// <summary>
+/// SM2（国密非对称加密算法）单元测试
+/// </summary>
 public class SM2HelperTests
 {
+    /// <summary>
+    /// 验证生成密钥对返回非空的Base64编码密钥，公钥65字节、私钥32字节
+    /// </summary>
     [Fact]
     public void GenerateKeyPair_ReturnsNonEmptyBase64Keys()
     {
@@ -17,6 +23,9 @@ public class SM2HelperTests
         Assert.Equal(32, Convert.FromBase64String(priv).Length);
     }
 
+    /// <summary>
+    /// 验证字符串的SM2加密解密往返一致性
+    /// </summary>
     [Fact]
     public void EncryptDecrypt_String_RoundTrips()
     {
@@ -26,6 +35,9 @@ public class SM2HelperTests
         Assert.Equal(plain, SM2Helper.Decrypt(cipher, priv));
     }
 
+    /// <summary>
+    /// 验证Unicode字符（含emoji）的SM2加密解密往返一致性
+    /// </summary>
     [Fact]
     public void EncryptDecrypt_Unicode_RoundTrips()
     {
@@ -35,6 +47,9 @@ public class SM2HelperTests
         Assert.Equal(plain, SM2Helper.Decrypt(cipher, priv));
     }
 
+    /// <summary>
+    /// 验证SM2签名和验签流程的正确性
+    /// </summary>
     [Fact]
     public void Sign_Verify_Succeeds()
     {
@@ -44,6 +59,9 @@ public class SM2HelperTests
         Assert.True(SM2Helper.Verify(data, signature, pub));
     }
 
+    /// <summary>
+    /// 验证对篡改数据进行SM2验签时返回失败
+    /// </summary>
     [Fact]
     public void Verify_TamperedData_ReturnsFalse()
     {
@@ -52,6 +70,9 @@ public class SM2HelperTests
         Assert.False(SM2Helper.Verify("tampered-data", signature, pub));
     }
 
+    /// <summary>
+    /// 验证SM2加密结果与明文不同
+    /// </summary>
     [Fact]
     public void Encrypt_DiffersFromPlaintext()
     {
@@ -60,6 +81,9 @@ public class SM2HelperTests
         Assert.NotEqual("data", cipher);
     }
 
+    /// <summary>
+    /// 验证对空或null明文进行SM2加密时抛出异常
+    /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]

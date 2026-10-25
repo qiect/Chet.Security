@@ -4,8 +4,14 @@ using Xunit;
 
 namespace Chet.Security.Tests.Asymmetric;
 
+/// <summary>
+/// RSA（非对称加密算法）单元测试
+/// </summary>
 public class RSAHelperTests
 {
+    /// <summary>
+    /// 验证生成密钥对返回有效的PEM格式字符串
+    /// </summary>
     [Fact]
     public void GenerateKeyPair_ReturnsPemStrings()
     {
@@ -16,12 +22,18 @@ public class RSAHelperTests
         Assert.Contains("PRIVATE KEY", priv);
     }
 
+    /// <summary>
+    /// 验证使用无效密钥大小生成密钥对时抛出异常
+    /// </summary>
     [Fact]
     public void GenerateKeyPair_InvalidKeySize_Throws()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => RSAHelper.GenerateKeyPair(100));
     }
 
+    /// <summary>
+    /// 验证字符串的加密解密往返一致性
+    /// </summary>
     [Fact]
     public void EncryptDecrypt_String_RoundTrips()
     {
@@ -31,6 +43,9 @@ public class RSAHelperTests
         Assert.Equal(plain, RSAHelper.Decrypt(cipher, priv));
     }
 
+    /// <summary>
+    /// 验证Unicode字符（含emoji）的加密解密往返一致性
+    /// </summary>
     [Fact]
     public void EncryptDecrypt_Unicode_RoundTrips()
     {
@@ -40,6 +55,9 @@ public class RSAHelperTests
         Assert.Equal(plain, RSAHelper.Decrypt(cipher, priv));
     }
 
+    /// <summary>
+    /// 验证长文本的EncryptLong/DecryptLong分块加密解密往返一致性
+    /// </summary>
     [Fact]
     public void EncryptLong_DecryptLong_RoundTripsOnLongText()
     {
@@ -49,6 +67,9 @@ public class RSAHelperTests
         Assert.Equal(plain, RSAHelper.DecryptLong(cipher, priv));
     }
 
+    /// <summary>
+    /// 验证RSA签名和验签流程的正确性
+    /// </summary>
     [Fact]
     public void SignData_VerifyData_Succeeds()
     {
@@ -58,6 +79,9 @@ public class RSAHelperTests
         Assert.True(RSAHelper.VerifyData(data, signature, pub));
     }
 
+    /// <summary>
+    /// 验证对篡改数据进行RSA验签时返回失败
+    /// </summary>
     [Fact]
     public void VerifyData_TamperedData_ReturnsFalse()
     {
@@ -66,6 +90,9 @@ public class RSAHelperTests
         Assert.False(RSAHelper.VerifyData("tampered-data", signature, pub));
     }
 
+    /// <summary>
+    /// 验证使用私钥PEM作为公钥进行加密时抛出异常
+    /// </summary>
     [Fact]
     public void Encrypt_WithPrivateKeyPemAsPublic_Throws()
     {
@@ -73,6 +100,9 @@ public class RSAHelperTests
         Assert.ThrowsAny<CryptographicException>(() => RSAHelper.Encrypt("data", priv));
     }
 
+    /// <summary>
+    /// 验证对空或null明文进行加密时抛出异常
+    /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]

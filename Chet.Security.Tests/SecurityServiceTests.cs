@@ -3,8 +3,14 @@ using Xunit;
 
 namespace Chet.Security.Tests;
 
+/// <summary>
+/// SecurityService统一服务门面单元测试
+/// </summary>
 public class SecurityServiceTests
 {
+    /// <summary>
+    /// 验证构造函数正确设置算法和密钥属性
+    /// </summary>
     [Fact]
     public void Constructor_SetsAlgorithmAndKeys()
     {
@@ -15,6 +21,9 @@ public class SecurityServiceTests
         Assert.Equal("iv", svc.Iv);
     }
 
+    /// <summary>
+    /// 验证AES算法通过SecurityService的编码解码往返一致性
+    /// </summary>
     [Fact]
     public void AES_EncodeDecode_RoundTripsViaService()
     {
@@ -24,6 +33,9 @@ public class SecurityServiceTests
         Assert.Equal(plain, svc.Decode(cipher));
     }
 
+    /// <summary>
+    /// 验证MD5算法的Encode返回哈希值，Decode抛出NotSupportedException
+    /// </summary>
     [Fact]
     public void MD5_Encode_ReturnsHashAndDecode_Throws()
     {
@@ -32,6 +44,9 @@ public class SecurityServiceTests
         Assert.Throws<NotSupportedException>(() => svc.Decode("anything"));
     }
 
+    /// <summary>
+    /// 验证哈希算法（SHA256、SHA512、SM3）的Decode操作抛出NotSupportedException
+    /// </summary>
     [Theory]
     [InlineData(CryptoAlgorithm.SHA256)]
     [InlineData(CryptoAlgorithm.SHA512)]
@@ -42,6 +57,9 @@ public class SecurityServiceTests
         Assert.Throws<NotSupportedException>(() => svc.Decode("anything"));
     }
 
+    /// <summary>
+    /// 验证Base64算法通过SecurityService的编码解码往返一致性
+    /// </summary>
     [Fact]
     public void Base64_EncodeDecode_RoundTripsViaService()
     {
@@ -51,6 +69,9 @@ public class SecurityServiceTests
         Assert.Equal(plain, svc.Decode(encoded));
     }
 
+    /// <summary>
+    /// 验证RSA算法通过SecurityService使用Key和Key2进行编码解码往返一致性
+    /// </summary>
     [Fact]
     public void RSA_EncodeDecode_RoundTripsViaServiceUsingKeyAndKey2()
     {
@@ -61,6 +82,9 @@ public class SecurityServiceTests
         Assert.Equal(plain, svc.Decode(cipher));
     }
 
+    /// <summary>
+    /// 验证RSA算法在未提供私钥时Decode操作抛出异常
+    /// </summary>
     [Fact]
     public void RSA_Decode_ThrowsWhenNoPrivateKey()
     {
@@ -69,6 +93,9 @@ public class SecurityServiceTests
         Assert.ThrowsAny<ArgumentException>(() => svc.Decode(svc.Encode("data")));
     }
 
+    /// <summary>
+    /// 验证使用不支持的算法枚举值时Encode操作抛出NotSupportedException
+    /// </summary>
     [Fact]
     public void Encode_UnsupportedAlgorithm_Throws()
     {
@@ -76,6 +103,9 @@ public class SecurityServiceTests
         Assert.Throws<NotSupportedException>(() => svc.Encode("data"));
     }
 
+    /// <summary>
+    /// 验证对空或null内容进行编码时抛出异常
+    /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]

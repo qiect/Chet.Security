@@ -4,8 +4,14 @@ using Xunit;
 
 namespace Chet.Security.Tests.Symmetric;
 
+/// <summary>
+/// DES对称加密算法单元测试
+/// </summary>
 public class DESHelperTests
 {
+    /// <summary>
+    /// 验证字符串的DES加密解密往返一致性
+    /// </summary>
     [Fact]
     public void EncryptDecrypt_String_RoundTrips()
     {
@@ -14,6 +20,9 @@ public class DESHelperTests
         Assert.Equal(plain, DESHelper.Decrypt(cipher, "my-secret-key"));
     }
 
+    /// <summary>
+    /// 验证字节数组的DES加密解密往返一致性
+    /// </summary>
     [Fact]
     public void EncryptDecrypt_Bytes_RoundTrips()
     {
@@ -24,6 +33,9 @@ public class DESHelperTests
         Assert.Equal(plain, DESHelper.Decrypt(cipher, key, iv));
     }
 
+    /// <summary>
+    /// 验证DES加密具有确定性
+    /// </summary>
     [Fact]
     public void Encrypt_IsDeterministic()
     {
@@ -32,6 +44,9 @@ public class DESHelperTests
         Assert.Equal(a, b);
     }
 
+    /// <summary>
+    /// 验证使用错误密钥解密时失败（CBC模式填充错误或结果不匹配）
+    /// </summary>
     [Fact]
     public void Decrypt_WithWrongKey_Fails()
     {
@@ -47,6 +62,9 @@ public class DESHelperTests
         }
     }
 
+    /// <summary>
+    /// 验证对空或null明文进行DES加密时抛出异常
+    /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -55,6 +73,9 @@ public class DESHelperTests
         Assert.ThrowsAny<ArgumentException>(() => DESHelper.Encrypt(plain!, "key"));
     }
 
+    /// <summary>
+    /// 验证对空或null密文进行DES解密时抛出异常
+    /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]

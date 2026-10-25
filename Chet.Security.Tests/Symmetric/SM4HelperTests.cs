@@ -4,8 +4,14 @@ using Xunit;
 
 namespace Chet.Security.Tests.Symmetric;
 
+/// <summary>
+/// SM4（国密对称加密算法）单元测试
+/// </summary>
 public class SM4HelperTests
 {
+    /// <summary>
+    /// 验证字符串的SM4加密解密往返一致性
+    /// </summary>
     [Fact]
     public void EncryptDecrypt_String_RoundTrips()
     {
@@ -14,6 +20,9 @@ public class SM4HelperTests
         Assert.Equal(plain, SM4Helper.Decrypt(cipher, "my-secret-key", "my-iv-vector"));
     }
 
+    /// <summary>
+    /// 验证字节数组的SM4加密解密往返一致性
+    /// </summary>
     [Fact]
     public void EncryptDecrypt_Bytes_RoundTrips()
     {
@@ -24,6 +33,9 @@ public class SM4HelperTests
         Assert.Equal(plain, SM4Helper.Decrypt(cipher, key, iv));
     }
 
+    /// <summary>
+    /// 验证SM4加密具有确定性
+    /// </summary>
     [Fact]
     public void Encrypt_IsDeterministic()
     {
@@ -32,6 +44,9 @@ public class SM4HelperTests
         Assert.Equal(a, b);
     }
 
+    /// <summary>
+    /// 验证SM4加密结果与明文不同
+    /// </summary>
     [Fact]
     public void Encrypt_DiffersFromPlaintext()
     {
@@ -39,6 +54,9 @@ public class SM4HelperTests
         Assert.NotEqual("data", cipher);
     }
 
+    /// <summary>
+    /// 验证使用错误密钥解密时失败（BouncyCastle SM4抛出InvalidCipherTextException）
+    /// </summary>
     [Fact]
     public void Decrypt_WithWrongKey_Fails()
     {
@@ -55,6 +73,9 @@ public class SM4HelperTests
         }
     }
 
+    /// <summary>
+    /// 验证对空或null明文进行SM4加密时抛出异常
+    /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]

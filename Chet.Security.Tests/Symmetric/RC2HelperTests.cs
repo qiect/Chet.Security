@@ -4,8 +4,14 @@ using Xunit;
 
 namespace Chet.Security.Tests.Symmetric;
 
+/// <summary>
+/// RC2对称加密算法单元测试
+/// </summary>
 public class RC2HelperTests
 {
+    /// <summary>
+    /// 验证字符串的RC2加密解密往返一致性
+    /// </summary>
     [Fact]
     public void EncryptDecrypt_String_RoundTrips()
     {
@@ -14,6 +20,9 @@ public class RC2HelperTests
         Assert.Equal(plain, RC2Helper.Decrypt(cipher, "my-secret-key"));
     }
 
+    /// <summary>
+    /// 验证字节数组的RC2加密解密往返一致性
+    /// </summary>
     [Fact]
     public void EncryptDecrypt_Bytes_RoundTrips()
     {
@@ -24,6 +33,9 @@ public class RC2HelperTests
         Assert.Equal(plain, RC2Helper.Decrypt(cipher, key, iv));
     }
 
+    /// <summary>
+    /// 验证RC2加密具有确定性
+    /// </summary>
     [Fact]
     public void Encrypt_IsDeterministic()
     {
@@ -32,6 +44,9 @@ public class RC2HelperTests
         Assert.Equal(a, b);
     }
 
+    /// <summary>
+    /// 验证使用错误密钥解密时失败（CBC模式填充错误或结果不匹配）
+    /// </summary>
     [Fact]
     public void Decrypt_WithWrongKey_Fails()
     {
@@ -47,6 +62,9 @@ public class RC2HelperTests
         }
     }
 
+    /// <summary>
+    /// 验证对空或null明文进行RC2加密时抛出异常
+    /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
