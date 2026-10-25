@@ -13,7 +13,9 @@
     <RepositoryUrl>https://github.com/qiect/Chet.Security</RepositoryUrl>
     <PackageProjectUrl>https://qiect.github.io/Chet.Security</PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
-    <Description>A comprehensive C# security &amp; cryptography library providing hashing (MD5/SHA/SM3/HMAC/Blake2), symmetric encryption (AES/DES/3DES/RC2/ChaCha20/SM4), asymmetric encryption (RSA/DSA/ECC/SM2), encoding (Base64/Base32/Base58/Hex), key derivation (PBKDF2/BCrypt/SCrypt/HKDF/Argon2), secure random and checksum utilities. Targets .NET Standard 2.1 and .NET 8.0+. C# 安全与加密工具类库，覆盖国密与国际化主流算法。</Description>
+    <Description>A comprehensive C# security &amp; cryptography library providing hashing (MD5/SHA/SM3/HMAC/Blake2), symmetric encryption (AES/DES/3DES/RC2/ChaCha20/SM4), asymmetric encryption (RSA/DSA/ECC/SM2), hybrid encryption (RSA+AES-GCM/SM2+SM4/ECIES), encoding (Base64/Base32/Base58/Hex), key derivation (PBKDF2/BCrypt/SCrypt/HKDF/Argon2), secure random and checksum utilities. Targets .NET Standard 2.1 and .NET 8.0+. C# 安全与加密工具类库，覆盖国密与国际化主流算法。</Description>
+    <PackageTags>security;crypto;hash;AES;RSA;ECC;SM2;SM3;SM4;HMAC;ChaCha20;Argon2;PBKDF2;BCrypt;SCrypt;HKDF;hybrid-encryption;ECIES;envelope-encryption;Base64;Base58;checksum;国密</PackageTags>
+    <PackageReleaseNotes>https://github.com/qiect/Chet.Security/releases</PackageReleaseNotes>
     <Version>1.1.1</Version>
     <Product />
   </PropertyGroup>
